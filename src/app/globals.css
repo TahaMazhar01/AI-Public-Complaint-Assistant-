@@ -1,26 +1,238 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   AWAAZ — "CIVIC SIGNAL" DESIGN SYSTEM
+   ------------------------------------------------------------
+   Two surfaces, deliberately opposed:
+     PAPER   → the citizen app. Warm, printed, official-document.
+     CONSOLE → the authority dashboard. Warm-dark ops room.
+   Colour is never decoration. Hue = priority or status, always.
+   ============================================================ */
+
+@theme {
+  /* --- PAPER surface (citizen) --- */
+  --color-paper:        #F4F2EC;
+  --color-paper-raised: #FBFAF7;
+  --color-paper-sunk:   #E9E6DC;
+  --color-ink:          #15140F;
+  --color-ink-muted:    #57544A;
+  --color-ink-faint:    #8C8879;
+  --color-rule:         #D9D5C9;
+  --color-rule-strong:  #B7B2A2;
+
+  /* --- CONSOLE surface (authority) --- */
+  --color-console:        #0F0F0D;
+  --color-console-raised: #171713;
+  --color-console-sunk:   #080806;
+  --color-console-ink:    #EAE8DF;
+  --color-console-muted:  #9B978A;
+  --color-console-faint:  #6A6759;
+  --color-console-rule:   #27271F;
+
+  /* --- SIGNAL: reserved for priority + status. Never decorative. --- */
+  --color-signal:   #D2582A;  /* live / active / primary accent */
+  --color-p1:       #B3261E;  /* critical  */
+  --color-p2:       #D2582A;  /* high      */
+  --color-p3:       #BE8A12;  /* medium    */
+  --color-p4:       #6B7668;  /* low       */
+  --color-routed:   #4A6FA5;
+  --color-progress: #BE8A12;
+  --color-resolved: #2F6B4F;
+
+  /* --- Type --- */
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans:    var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+  --font-urdu:    var(--font-nastaliq), "Noto Nastaliq Urdu", serif;
+
+  /* --- Motion: one curve, one clock. --- */
+  --ease-out-civic: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-civic:  cubic-bezier(0.7, 0, 0.84, 0);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ============================================================
+   BASE
+   ============================================================ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-variation-settings: "wdth" 100, "wght" 400;
+}
+
+::selection {
+  background: var(--color-ink);
+  color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+/* Paper grain. Subtle — it should read as texture, never as noise. */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   TYPE SCALE
+   Archivo carries a width axis — display type is EXPANDED,
+   the way municipal signage is. Body stays normal width.
+   ============================================================ */
+
+@layer components {
+  .type-display {
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 118, "wght" 620;
+    font-size: clamp(2.75rem, 7.5vw, 6.5rem);
+    line-height: 0.92;
+    letter-spacing: -0.035em;
+  }
+
+  .type-h1 {
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 112, "wght" 600;
+    font-size: clamp(1.9rem, 3.6vw, 3rem);
+    line-height: 1.02;
+    letter-spacing: -0.025em;
+  }
+
+  .type-h2 {
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 108, "wght" 600;
+    font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+    line-height: 1.12;
+    letter-spacing: -0.018em;
+  }
+
+  .type-h3 {
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 100, "wght" 600;
+    font-size: 1.0625rem;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+  }
+
+  /* Eyebrow / label — the mono uppercase tag that makes it read
+     as a records system rather than a landing page. */
+  .type-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  /* Machine data: IDs, timestamps, coordinates, counts. */
+  .type-meta {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .type-body {
+    font-size: 0.9375rem;
+    line-height: 1.62;
+    font-variation-settings: "wdth" 100, "wght" 400;
+  }
+
+  .type-lead {
+    font-size: clamp(1rem, 1.5vw, 1.1875rem);
+    line-height: 1.5;
+    font-variation-settings: "wdth" 100, "wght" 400;
+    color: var(--color-ink-muted);
+  }
+
+  /* Big stencilled numerals — case counts, stat tiles. */
+  .type-numeral {
+    font-family: var(--font-display);
+    font-variation-settings: "wdth" 122, "wght" 640;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    line-height: 0.86;
+  }
+
+  .type-urdu {
+    font-family: var(--font-urdu);
+    line-height: 2.1;
+    direction: rtl;
+  }
+}
+
+/* ============================================================
+   PRIMITIVES
+   Hairlines instead of shadows. Everything is a ruled document.
+   ============================================================ */
+
+@layer components {
+  .rule-t { border-top: 1px solid var(--color-rule); }
+  .rule-b { border-bottom: 1px solid var(--color-rule); }
+  .rule-l { border-left: 1px solid var(--color-rule); }
+  .rule-r { border-right: 1px solid var(--color-rule); }
+
+  /* Perforated edge — used on the complaint receipt. */
+  .perforated {
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--color-rule-strong) 0 6px,
+      transparent 6px 12px
+    );
+    background-size: 100% 1px;
+    background-repeat: no-repeat;
+  }
+
+  /* Live pulse for realtime indicators. */
+  .pulse-dot {
+    position: relative;
+  }
+  .pulse-dot::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: 9999px;
+    border: 1px solid currentColor;
+    opacity: 0;
+    animation: civic-pulse 2.4s var(--ease-out-civic) infinite;
+  }
+}
+
+@keyframes civic-pulse {
+  0%   { opacity: 0.55; transform: scale(0.7); }
+  70%  { opacity: 0;    transform: scale(1.6); }
+  100% { opacity: 0;    transform: scale(1.6); }
+}
+
+/* Pipeline scan line — the processing moment. */
+@keyframes civic-scan {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(400%); }
+}
+
+@keyframes civic-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
