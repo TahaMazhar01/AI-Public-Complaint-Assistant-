@@ -236,3 +236,63 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   LEAFLET OVERRIDES
+   Stock Leaflet chrome is white, rounded and shadowed — the exact
+   opposite of this system. Everything below drags it back onto
+   the console surface.
+   ============================================================ */
+
+.leaflet-container {
+  background: var(--color-console);
+  font-family: var(--font-sans);
+}
+
+/* Push the basemap darker and cooler so it sits under the pins
+   rather than competing with them. */
+.leaflet-tile-pane {
+  filter: brightness(0.62) contrast(1.08) saturate(0.55);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--color-paper-raised);
+  color: var(--color-ink);
+  border-radius: 0;
+  box-shadow: none;
+  border: 1px solid var(--color-rule-strong);
+}
+
+.leaflet-popup-content {
+  margin: 0.85rem 1rem;
+  line-height: 1.4;
+}
+
+.leaflet-popup-content p {
+  margin: 0;
+}
+
+.leaflet-control-zoom a {
+  background: var(--color-console-raised);
+  color: var(--color-console-muted);
+  border: 1px solid var(--color-console-rule);
+  border-radius: 0;
+  transition: color 0.15s, background 0.15s;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--color-console-raised);
+  color: var(--color-console-ink);
+}
+
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--color-console) 80%, transparent);
+  color: var(--color-console-faint);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+}
+
+.leaflet-control-attribution a {
+  color: var(--color-console-muted);
+}
