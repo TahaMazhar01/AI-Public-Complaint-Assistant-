@@ -296,3 +296,48 @@ body {
 .leaflet-control-attribution a {
   color: var(--color-console-muted);
 }
+
+/* ============================================================
+   ACTION TYPE
+   Eyebrows are labels, not buttons. Anything a person has to tap
+   gets real, readable, sentence-case type at a size a thumb and
+   an unfamiliar reader can both handle.
+   ============================================================ */
+
+@layer components {
+  .type-action {
+    font-family: var(--font-sans);
+    font-size: 0.9375rem;
+    font-variation-settings: "wdth" 100, "wght" 560;
+    letter-spacing: -0.004em;
+    line-height: 1.1;
+  }
+
+  .type-action-lg {
+    font-family: var(--font-sans);
+    font-size: 1.125rem;
+    font-variation-settings: "wdth" 102, "wght" 600;
+    letter-spacing: -0.012em;
+    line-height: 1.1;
+  }
+
+  /* Urdu set inline beside an English label. Nastaliq needs more
+     vertical room than Latin, so it is nudged rather than baselined. */
+  .type-urdu-inline {
+    font-family: var(--font-urdu);
+    line-height: 1;
+    display: inline-block;
+    transform: translateY(0.12em);
+  }
+
+  /* Live microphone level bars. */
+  .mic-bar {
+    transform-origin: center;
+    transition: transform 90ms linear;
+  }
+}
+
+@keyframes civic-ring {
+  0%   { transform: scale(1);    opacity: 0.5; }
+  100% { transform: scale(1.85); opacity: 0; }
+}

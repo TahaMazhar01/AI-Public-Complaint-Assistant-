@@ -39,7 +39,11 @@ export default async function Home() {
               <span className="text-ink-muted">We file it</span> properly.
             </h1>
 
-            <p className="type-lead mt-7 max-w-[46ch]">
+            <p className="type-urdu text-ink-muted mt-6 text-[1.15rem]">
+              ایک بار بتائیں — باقی کام ہمارا
+            </p>
+
+            <p className="type-lead mt-5 max-w-[46ch]">
               No forms. No department names to memorise. Describe the problem the
               way you would to a neighbour — in Urdu, English, or both. Awaaz
               identifies the issue, routes it to the authority that actually owns

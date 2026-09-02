@@ -80,7 +80,7 @@ export default function ComplaintResult({
         <div className="rule-r px-4 py-4 sm:px-5">
           <dt className="type-eyebrow text-ink-faint">Authority</dt>
           <dd className="type-h3 mt-2">{dept.shortName}</dd>
-          <dd className="type-meta text-ink-faint mt-1">{dept.remit.split(",")[0]}</dd>
+          <dd className="type-meta text-ink-faint mt-1">{dept.name}</dd>
         </div>
         <div className="sm:rule-r px-4 py-4 sm:px-5">
           <dt className="type-eyebrow text-ink-faint">Priority</dt>

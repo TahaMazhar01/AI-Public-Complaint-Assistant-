@@ -1,47 +1,58 @@
 "use client";
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import {
+  ArrowLeft,
   ArrowRight,
   Camera,
+  Check,
   Loader2,
   MapPin,
   Mic,
-  Square,
+  PenLine,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { NEIGHBOURHOODS, nearestNeighbourhood } from "@/lib/geo";
 import type { StageEvent } from "@/lib/pipeline";
 import type { Complaint, IntakeMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import ComplaintResult from "./ComplaintResult";
 import PipelineView from "./PipelineView";
+import VoiceCapture from "./VoiceCapture";
+import { BiLabel, Button } from "./ui";
 
 /* ============================================================
    INTAKE
-   One box. Speak, type, photograph, or all three. Everything the
-   citizen has to decide is optional — the system does the rest.
+   The first decision a citizen makes is "do I talk or do I type?"
+   so that is the first thing on screen — two doors, equal size,
+   both labelled in Urdu and English. Everything else is optional
+   and clearly marked as such.
    ============================================================ */
 
 const EXAMPLES = [
   {
-    label: "Roman Urdu · voice",
+    label: "Sewerage",
+    ur: "سیوریج",
     text: "Gulberg mein sewerage ka pani teen din se sarak pe khara hai, bohat badbo hai aur bachay wahin khelte hain. Koi sunwai nahi ho rahi.",
   },
   {
-    label: "English",
+    label: "Electricity",
+    ur: "بجلی",
     text: "The transformer outside our lane is sparking and a cable is hanging low over the footpath children use for school.",
   },
   {
-    label: "Urdu",
+    label: "Street lights",
+    ur: "اسٹریٹ لائٹ",
     text: "پوری گلی کی اسٹریٹ لائٹس دو ہفتے سے بند ہیں، رات کو باہر نکلنا خطرناک ہو گیا ہے۔",
   },
 ];
 
+type Mode = "voice" | "write";
 type Phase = "idle" | "running" | "done" | "error";
 
 export default function IntakeConsole() {
+  const [mode, setMode] = useState<Mode | null>(null);
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
   const [events, setEvents] = useState<StageEvent[]>([]);
@@ -49,64 +60,13 @@ export default function IntakeConsole() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
-  const [listening, setListening] = useState(false);
   const [voiceLang, setVoiceLang] = useState<"ur-PK" | "en-US">("ur-PK");
-  const [voiceError, setVoiceError] = useState<string | null>(null);
 
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const committedRef = useRef("");
   const fileRef = useRef<HTMLInputElement>(null);
-
   const hood = coords ? nearestNeighbourhood(coords.lat, coords.lng) : null;
+  const ready = text.trim().length >= 8;
 
-  /* ── voice ───────────────────────────────────────────────── */
-  const stopListening = useCallback(() => {
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
-    setListening(false);
-  }, []);
-
-  const startListening = useCallback(() => {
-    const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!Ctor) {
-      setVoiceError("This browser cannot capture speech. Chrome or Edge works.");
-      return;
-    }
-    setVoiceError(null);
-    committedRef.current = text ? text.trimEnd() + " " : "";
-
-    const rec = new Ctor();
-    rec.lang = voiceLang;
-    rec.continuous = true;
-    rec.interimResults = true;
-
-    rec.onresult = (e: SpeechRecognitionEvent) => {
-      let interim = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        const chunk = e.results[i][0].transcript;
-        if (e.results[i].isFinal) committedRef.current += chunk + " ";
-        else interim += chunk;
-      }
-      setText((committedRef.current + interim).replace(/\s+/g, " ").trimStart());
-    };
-    rec.onerror = (e: SpeechRecognitionErrorEvent) => {
-      setVoiceError(
-        e.error === "not-allowed"
-          ? "Microphone permission was refused."
-          : `Speech capture stopped (${e.error}).`,
-      );
-      setListening(false);
-    };
-    rec.onend = () => setListening(false);
-
-    recognitionRef.current = rec;
-    rec.start();
-    setListening(true);
-  }, [text, voiceLang]);
-
-  useEffect(() => () => recognitionRef.current?.abort(), []);
-
-  /* ── location ────────────────────────────────────────────── */
+  /* ---- location ---- */
   const locate = () => {
     if (!navigator.geolocation) return;
     setLocating(true);
@@ -120,28 +80,27 @@ export default function IntakeConsole() {
     );
   };
 
-  /* ── photos ──────────────────────────────────────────────── */
+  /* ---- photos ---- */
   const onPhotos = (files: FileList | null) => {
     if (!files) return;
     Array.from(files)
       .slice(0, 3)
       .forEach((f) => {
         const reader = new FileReader();
-        reader.onload = () =>
-          setPhotos((p) => [...p, reader.result as string].slice(0, 3));
+        reader.onload = () => setPhotos((p) => [...p, reader.result as string].slice(0, 3));
         reader.readAsDataURL(f);
       });
   };
 
-  /* ── submit ──────────────────────────────────────────────── */
+  /* ---- submit ---- */
   const submit = async () => {
-    if (text.trim().length < 8 || phase === "running") return;
-    stopListening();
+    if (!ready || phase === "running") return;
     setPhase("running");
     setEvents([]);
     setError(null);
 
-    const mode: IntakeMode = listening || committedRef.current ? "voice" : photos.length ? "photo" : "text";
+    const intakeMode: IntakeMode =
+      mode === "voice" ? "voice" : photos.length ? "photo" : "text";
 
     try {
       const res = await fetch("/api/intake", {
@@ -151,14 +110,14 @@ export default function IntakeConsole() {
           text,
           lat: coords?.lat ?? null,
           lng: coords?.lng ?? null,
-          intakeMode: mode,
+          intakeMode,
           photoCount: photos.length,
         }),
       });
 
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => null);
-        throw new Error(j?.error ?? "The intake service did not respond.");
+        throw new Error(j?.error ?? "We couldn't reach the service. Please try again.");
       }
 
       const reader = res.body.getReader();
@@ -169,7 +128,6 @@ export default function IntakeConsole() {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
         for (const line of lines) {
@@ -195,8 +153,8 @@ export default function IntakeConsole() {
     setEvents([]);
     setPhotos([]);
     setPhase("idle");
+    setMode(null);
     setError(null);
-    committedRef.current = "";
   };
 
   const filed = events.find((e) => e.stage === "filed");
@@ -204,103 +162,195 @@ export default function IntakeConsole() {
   const received = events.find((e) => e.stage === "received");
   const complaint = filed?.complaint as Complaint | undefined;
 
+  /* ══════════════════════════════════════════════════════════ */
+
+  if (phase === "running") {
+    return <PipelineView events={events} engine={received?.engine ?? null} />;
+  }
+
+  if (phase === "done" && complaint) {
+    return (
+      <ComplaintResult
+        complaint={complaint}
+        matches={dedupe?.matches ?? 0}
+        escalated={Boolean(dedupe?.escalated)}
+        onReset={reset}
+      />
+    );
+  }
+
   return (
-    <div className="w-full">
-      <AnimatePresence mode="wait">
-        {/* ══ FORM ══════════════════════════════════════════ */}
-        {phase === "idle" || phase === "error" ? (
+    <div className="border-rule bg-paper-raised w-full border">
+      {/* ── panel header ── */}
+      <div className="rule-b flex items-center justify-between gap-4 px-4 py-3.5 sm:px-5">
+        <div className="flex items-center gap-3">
+          {mode && (
+            <button
+              onClick={() => setMode(null)}
+              className="text-ink-faint hover:text-ink -ml-1 p-1 transition-colors"
+              aria-label="Back"
+            >
+              <ArrowLeft className="size-4" />
+            </button>
+          )}
+          <div>
+            <p className="type-action">Report a problem</p>
+            <p className="type-urdu text-ink-faint text-[0.85rem] leading-tight">
+              مسئلہ بتائیں
+            </p>
+          </div>
+        </div>
+        <span className="type-meta text-ink-faint shrink-0">
+          {mode ? "Step 2 of 2" : "Step 1 of 2"}
+        </span>
+      </div>
+
+        {/* ══ DOOR 1: how do you want to report? ══════════════ */}
+        {!mode && (
           <motion.div
-            key="form"
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
-            className="border-rule bg-paper-raised border"
+            key="choose"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="p-4 sm:p-5"
           >
-            <div className="rule-b flex items-center justify-between px-4 py-2.5">
-              <span className="type-eyebrow text-ink-faint">New report</span>
-              <span className="type-meta text-ink-faint">01 / INTAKE</span>
+            <p className="type-lead text-center">
+              How would you like to tell us?
+            </p>
+            <p className="type-urdu text-ink-faint mt-1 text-center text-[1rem]">
+              آپ کیسے بتانا چاہیں گے؟
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {/* SPEAK */}
+              <button
+                onClick={() => setMode("voice")}
+                className="border-rule-strong hover:border-ink hover:bg-paper-sunk group flex flex-col items-center gap-4 border p-7 transition-colors sm:p-8"
+              >
+                <span className="bg-ink text-paper group-hover:bg-signal grid size-16 place-items-center rounded-full transition-colors">
+                  <Mic className="size-7" strokeWidth={1.5} />
+                </span>
+                <BiLabel en="Speak" ur="بولیں" />
+                <span className="type-body text-ink-muted text-center leading-snug">
+                  Just talk, the way you would to a neighbour
+                </span>
+              </button>
+
+              {/* WRITE */}
+              <button
+                onClick={() => setMode("write")}
+                className="border-rule-strong hover:border-ink hover:bg-paper-sunk group flex flex-col items-center gap-4 border p-7 transition-colors sm:p-8"
+              >
+                <span className="border-ink text-ink group-hover:bg-ink group-hover:text-paper grid size-16 place-items-center rounded-full border transition-colors">
+                  <PenLine className="size-7" strokeWidth={1.5} />
+                </span>
+                <BiLabel en="Write" ur="لکھیں" />
+                <span className="type-body text-ink-muted text-center leading-snug">
+                  Type it out in Urdu, English, or both
+                </span>
+              </button>
             </div>
 
-            <div className="p-4 sm:p-5">
+            <p className="type-meta text-ink-faint mt-6 text-center">
+              No account needed · Takes about a minute
+            </p>
+          </motion.div>
+        )}
+
+        {/* ══ DOOR 2A: speaking ═══════════════════════════════ */}
+        {mode === "voice" && (
+          <motion.div
+            key="voice"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+          >
+            <VoiceCapture
+              value={text}
+              onChange={setText}
+              lang={voiceLang}
+              onLangChange={setVoiceLang}
+              onDone={() => setMode("write")}
+            />
+          </motion.div>
+        )}
+
+        {/* ══ DOOR 2B: writing (also the review step after voice) ══ */}
+        {mode === "write" && (
+          <motion.div
+            key="write"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+            className="p-4 sm:p-5"
+          >
+            <label className="block">
+              <span className="type-action">What is the problem?</span>
+              <span className="type-urdu text-ink-faint mt-0.5 block text-[0.9rem]">
+                مسئلہ کیا ہے؟
+              </span>
               <textarea
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                rows={5}
-                placeholder="Describe the problem the way you would to a neighbour — Urdu, English, or both."
-                className="type-body placeholder:text-ink-faint/70 w-full resize-none bg-transparent outline-none"
+                rows={6}
+                autoFocus
+                placeholder="For example: our street has had no water for three days and the children are getting sick."
+                className={cn(
+                  "border-rule focus:border-ink placeholder:text-ink-faint/70 mt-3 w-full resize-none border bg-transparent p-3.5 outline-none transition-colors",
+                  /[؀-ۿ]/.test(text) ? "type-urdu text-right text-[1.05rem]" : "type-body",
+                )}
               />
+            </label>
 
-              {listening && (
-                <div className="type-meta text-signal mt-1 flex items-center gap-2">
-                  <span className="pulse-dot block size-1.5 rounded-full bg-current" />
-                  Listening in {voiceLang === "ur-PK" ? "Urdu" : "English"}…
-                </div>
-              )}
-              {voiceError && (
-                <p className="type-meta text-p2 mt-1">{voiceError}</p>
-              )}
+            {/* examples */}
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="type-meta text-ink-faint">Try an example:</span>
+              {EXAMPLES.map((ex) => (
+                <button
+                  key={ex.label}
+                  onClick={() => setText(ex.text)}
+                  className="border-rule text-ink-muted hover:border-ink hover:text-ink flex items-center gap-1.5 border px-2.5 py-1.5 transition-colors"
+                >
+                  <span className="type-meta">{ex.label}</span>
+                  <span className="type-urdu-inline text-[0.8rem] opacity-60">{ex.ur}</span>
+                </button>
+              ))}
+            </div>
 
-              {/* photo thumbnails */}
-              {photos.length > 0 && (
-                <ul className="mt-3 flex gap-2">
-                  {photos.map((src, i) => (
-                    <li key={i} className="border-rule relative size-16 border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt="" className="size-full object-cover" />
-                      <button
-                        onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}
-                        className="bg-ink text-paper absolute -top-2 -right-2 grid size-4 place-items-center"
-                      >
-                        <X className="size-2.5" />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-
-              {/* examples — also the demo's safety rail */}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="type-eyebrow text-ink-faint">Try</span>
-                {EXAMPLES.map((ex) => (
-                  <button
-                    key={ex.label}
-                    onClick={() => setText(ex.text)}
-                    className="type-eyebrow border-rule text-ink-muted hover:border-ink hover:text-ink border px-2 py-1 transition-colors"
-                  >
-                    {ex.label}
-                  </button>
+            {/* photos */}
+            {photos.length > 0 && (
+              <ul className="mt-4 flex gap-2">
+                {photos.map((src, i) => (
+                  <li key={i} className="border-rule relative size-20 border">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt="" className="size-full object-cover" />
+                    <button
+                      onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}
+                      className="bg-ink text-paper absolute -top-2 -right-2 grid size-5 place-items-center"
+                      aria-label="Remove photo"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
+            )}
 
-              {/* controls */}
-              <div className="rule-t mt-4 flex flex-wrap items-center gap-2 pt-4">
-                <button
-                  onClick={listening ? stopListening : startListening}
-                  className={cn(
-                    "inline-flex items-center gap-2 border px-3 py-2 transition-colors",
-                    listening
-                      ? "border-signal bg-signal text-paper"
-                      : "border-rule text-ink-muted hover:border-ink hover:text-ink",
-                  )}
-                >
-                  {listening ? <Square className="size-3.5" /> : <Mic className="size-3.5" />}
-                  <span className="type-eyebrow">{listening ? "Stop" : "Speak"}</span>
-                </button>
+            {/* optional extras — clearly marked optional */}
+            <div className="rule-t mt-5 pt-5">
+              <p className="type-meta text-ink-faint mb-3">
+                Optional — these help us send it to the right office
+              </p>
 
-                <button
-                  onClick={() => setVoiceLang((l) => (l === "ur-PK" ? "en-US" : "ur-PK"))}
-                  className="type-eyebrow border-rule text-ink-faint hover:border-ink hover:text-ink border px-2 py-2 transition-colors"
-                  title="Speech recognition language"
-                >
-                  {voiceLang === "ur-PK" ? "اردو" : "EN"}
-                </button>
-
-                <button
+              <div className="flex flex-wrap gap-2.5">
+                <Button
+                  variant="outline"
+                  urdu="تصویر"
                   onClick={() => fileRef.current?.click()}
-                  className="border-rule text-ink-muted hover:border-ink hover:text-ink inline-flex items-center gap-2 border px-3 py-2 transition-colors"
                 >
-                  <Camera className="size-3.5" />
-                  <span className="type-eyebrow">Photo</span>
-                </button>
+                  <Camera className="mr-2 size-4" />
+                  Add photo
+                </Button>
                 <input
                   ref={fileRef}
                   type="file"
@@ -310,47 +360,35 @@ export default function IntakeConsole() {
                   onChange={(e) => onPhotos(e.target.files)}
                 />
 
-                <button
+                <Button
+                  variant={hood ? "primary" : "outline"}
+                  urdu={hood ? undefined : "مقام"}
                   onClick={locate}
-                  className={cn(
-                    "inline-flex items-center gap-2 border px-3 py-2 transition-colors",
-                    hood
-                      ? "border-ink text-ink"
-                      : "border-rule text-ink-muted hover:border-ink hover:text-ink",
-                  )}
                 >
                   {locating ? (
-                    <Loader2 className="size-3.5 animate-spin" />
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                  ) : hood ? (
+                    <Check className="mr-2 size-4" />
                   ) : (
-                    <MapPin className="size-3.5" />
+                    <MapPin className="mr-2 size-4" />
                   )}
-                  <span className="type-eyebrow">{hood ? hood.name : "Locate me"}</span>
-                </button>
-
-                <button
-                  onClick={submit}
-                  disabled={text.trim().length < 8}
-                  className="bg-ink text-paper hover:bg-signal ml-auto inline-flex items-center gap-2 px-4 py-2 transition-colors disabled:cursor-not-allowed disabled:opacity-35"
-                >
-                  <span className="type-eyebrow">File complaint</span>
-                  <ArrowRight className="size-3.5" />
-                </button>
+                  {hood ? hood.name : "Use my location"}
+                </Button>
               </div>
 
-              {/* manual area fallback when geolocation is refused */}
               {!hood && (
-                <div className="mt-3 flex items-center gap-2">
-                  <span className="type-eyebrow text-ink-faint">or pick an area</span>
+                <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                  <span className="type-body text-ink-faint">or choose your area</span>
                   <select
                     onChange={(e) => {
                       const n = NEIGHBOURHOODS.find((x) => x.name === e.target.value);
                       if (n) setCoords({ lat: n.lat, lng: n.lng });
                     }}
                     defaultValue=""
-                    className="type-meta border-rule text-ink-muted border bg-transparent px-2 py-1 outline-none"
+                    className="type-body border-rule focus:border-ink h-11 border bg-transparent px-3 outline-none transition-colors"
                   >
                     <option value="" disabled>
-                      Select…
+                      Select your area…
                     </option>
                     {NEIGHBOURHOODS.map((n) => (
                       <option key={n.name} value={n.name}>
@@ -360,42 +398,31 @@ export default function IntakeConsole() {
                   </select>
                 </div>
               )}
-
-              {error && <p className="type-meta text-p1 mt-3">{error}</p>}
             </div>
 
-            <div className="rule-t bg-paper-sunk px-4 py-2.5">
-              <p className="type-meta text-ink-faint">
-                No account required · Location is optional but improves routing
-              </p>
+            {error && <p className="type-body text-p1 mt-4">{error}</p>}
+
+            {/* the one action that matters */}
+            <div className="rule-t mt-5 flex flex-col gap-3 pt-5 sm:flex-row sm:items-center">
+              <Button
+                size="xl"
+                urdu="شکایت بھیجیں"
+                onClick={submit}
+                disabled={!ready}
+                className="w-full sm:w-auto"
+              >
+                Send complaint
+                <ArrowRight className="ml-1 size-4" />
+              </Button>
+
+              {!ready && (
+                <p className="type-body text-ink-faint">
+                  Tell us a little more first
+                </p>
+              )}
             </div>
           </motion.div>
-        ) : null}
-
-        {/* ══ PIPELINE ══════════════════════════════════════ */}
-        {phase === "running" && (
-          <motion.div
-            key="pipeline"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <PipelineView events={events} engine={received?.engine ?? null} />
-          </motion.div>
         )}
-
-        {/* ══ RESULT ════════════════════════════════════════ */}
-        {phase === "done" && complaint && (
-          <motion.div key="result">
-            <ComplaintResult
-              complaint={complaint}
-              matches={dedupe?.matches ?? 0}
-              escalated={Boolean(dedupe?.escalated)}
-              onReset={reset}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

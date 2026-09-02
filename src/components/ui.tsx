@@ -144,3 +144,98 @@ export function Metric({
     </div>
   );
 }
+
+/* ============================================================
+   ACTIONS
+   Sized for a thumb, labelled in both languages. A citizen who
+   reads only Urdu should be able to complete the whole flow.
+   ============================================================ */
+
+type ButtonVariant = "primary" | "outline" | "quiet" | "danger";
+type ButtonSize = "md" | "lg" | "xl";
+
+const VARIANTS: Record<ButtonVariant, string> = {
+  primary: "bg-ink text-paper hover:bg-signal border border-ink hover:border-signal",
+  outline: "border border-rule-strong text-ink hover:border-ink hover:bg-paper-sunk",
+  quiet: "border border-transparent text-ink-muted hover:text-ink hover:bg-paper-sunk",
+  danger: "border border-p1 text-p1 hover:bg-p1 hover:text-paper",
+};
+
+const SIZES: Record<ButtonSize, string> = {
+  md: "h-11 px-4 gap-2",
+  lg: "h-14 px-5 gap-2.5",
+  xl: "h-16 px-6 gap-3",
+};
+
+export function Button({
+  variant = "primary",
+  size = "md",
+  urdu,
+  className,
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  /** Urdu rendered beside the English label, not instead of it. */
+  urdu?: string;
+}) {
+  return (
+    <button
+      className={cn(
+        "inline-flex items-center justify-center transition-colors",
+        "disabled:cursor-not-allowed disabled:opacity-35",
+        VARIANTS[variant],
+        SIZES[size],
+        className,
+      )}
+      {...props}
+    >
+      <span className={size === "xl" ? "type-action-lg" : "type-action"}>{children}</span>
+      {urdu && (
+        <span
+          className={cn(
+            "type-urdu-inline opacity-60",
+            size === "xl" ? "text-[1.05rem]" : "text-[0.9rem]",
+          )}
+        >
+          {urdu}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** English over Urdu, stacked. For headings and big choices. */
+export function BiLabel({
+  en,
+  ur,
+  className,
+  size = "md",
+}: {
+  en: string;
+  ur: string;
+  className?: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  return (
+    <span className={cn("flex flex-col items-center gap-1.5", className)}>
+      <span
+        className={
+          size === "lg" ? "type-h2" : size === "md" ? "type-action-lg" : "type-action"
+        }
+      >
+        {en}
+      </span>
+      <span
+        className={cn(
+          "type-urdu text-ink-muted",
+          size === "lg" ? "text-[1.15rem]" : size === "md" ? "text-[0.95rem]" : "text-[0.8rem]",
+        )}
+        style={{ lineHeight: 1.9 }}
+      >
+        {ur}
+      </span>
+    </span>
+  );
+}
