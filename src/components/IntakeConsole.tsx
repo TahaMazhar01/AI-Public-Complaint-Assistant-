@@ -142,7 +142,7 @@ export default function IntakeConsole() {
           lat: coords?.lat ?? null,
           lng: coords?.lng ?? null,
           intakeMode,
-          photoCount: photos.length,
+          photos,
           locale,
         }),
       });

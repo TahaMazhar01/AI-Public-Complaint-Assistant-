@@ -90,6 +90,10 @@ export interface AnalyzeInput {
   text: string;
   neighbourhood?: string | null;
   hasPhoto?: boolean;
+  /** What the vision model saw, when a photograph was attached. Treated
+      as additional evidence beside the citizen words, never as a
+      replacement for them. */
+  photoNote?: string | null;
   /** Language the citizen is reading the app in. The case title and
       summary come back in this language so nothing they are shown is
       in a language they did not choose. */
@@ -221,7 +225,13 @@ function buildPrompt(input: AnalyzeInput): string {
       `DEVICE LOCATION: ${input.neighbourhood}, Lahore. Use this only for context; the location_hint field must still come from the text itself.`,
     );
   }
-  if (input.hasPhoto) {
+  if (input.photoNote) {
+    parts.push(
+      `PHOTOGRAPH ATTACHED. An image model examined it and reports:
+"""${input.photoNote}"""
+Treat this as evidence alongside the citizen own words. If it contradicts them, prefer what the citizen wrote and note the discrepancy in the summary.`,
+    );
+  } else if (input.hasPhoto) {
     parts.push("The citizen attached a photograph of the issue.");
   }
   parts.push(OUTPUT_LANGUAGE[input.locale ?? "en"]);

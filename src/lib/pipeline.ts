@@ -10,6 +10,7 @@ import type { Complaint, DuplicateMatch, HazardFlag, Priority } from "./types";
 
 export const STAGE_ORDER = [
   "received",
+  "examined",
   "understanding",
   "classified",
   "routed",
@@ -26,6 +27,11 @@ export interface StageEvent {
 
   // received
   chars?: number;
+  photos?: number;
+
+  // examined
+  photoNote?: string | null;
+  visionModel?: string;
   mode?: string;
   neighbourhood?: string | null;
   engine?: string;
@@ -100,6 +106,9 @@ export function stageDetail(e: StageEvent, t: Dictionary): string {
         e.mode === "voice" ? p.dSpoken : e.mode === "photo" ? p.dWithPhoto : p.dTyped,
         e.neighbourhood ?? null,
       ]);
+
+    case "examined":
+      return e.photoNote ? e.photoNote : p.dPhotoUnread;
 
     case "understanding":
       return join([

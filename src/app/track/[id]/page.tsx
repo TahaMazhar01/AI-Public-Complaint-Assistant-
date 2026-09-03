@@ -137,6 +137,26 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
               </p>
             </div>
 
+            {complaint.photo_urls.length > 0 && (
+              <div className="rule-t mt-10 pt-8">
+                <h2 className="type-eyebrow text-ink-faint mb-4">{t.track.photos}</h2>
+                <ul className="flex flex-wrap gap-3">
+                  {complaint.photo_urls.map((src, i) => (
+                    <li key={src} className="border-rule border">
+                      <a href={src} target="_blank" rel="noreferrer">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={src}
+                          alt={`${t.track.photos} ${i + 1}`}
+                          className="h-44 w-auto max-w-full object-cover"
+                        />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="rule-t mt-10 pt-8">
               <h2 className="type-eyebrow text-ink-faint mb-4">
                 {fmt(t.track.formalFiledWith, { dept: dept.shortName })}

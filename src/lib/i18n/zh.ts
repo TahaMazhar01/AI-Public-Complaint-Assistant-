@@ -96,6 +96,7 @@ export const zh: Dictionary = {
     complete: "已完成",
     engine: "分析引擎",
     received: { label: "已接收", doing: "正在读取内容" },
+    examined: { label: "已读取照片", doing: "正在查看照片" },
     understanding: { label: "已理解", doing: "正在识别语言与意图" },
     classified: { label: "已分类", doing: "正在识别问题" },
     routed: { label: "已分派", doing: "正在选择主管部门" },
@@ -114,6 +115,7 @@ export const zh: Dictionary = {
     dEscalated: "已升级为 {p}",
     dNoMatches: "无匹配报告。新案件",
     dWords: "{n} 字的正式投诉",
+    dPhotoUnread: "无法读取照片",
   },
 
   receipt: {
@@ -146,6 +148,7 @@ export const zh: Dictionary = {
     allComplaints: "全部投诉",
     caseHistory: "办理记录",
     verbatim: "市民原话",
+    photos: "附加的照片",
     receivedBy: "通过{mode}接收 · 分类置信度 {n}%",
     formalFiledWith: "已提交至 {dept} 的正式投诉",
     responsibleAuthority: "主管部门",

@@ -9,7 +9,9 @@
     "lint": "eslint",
     "seed": "tsx scripts/seed-supabase.ts",
     "check:db": "tsx scripts/check-supabase.ts",
-    "check:ai": "tsx scripts/check-ai.ts"
+    "check:ai": "tsx scripts/check-ai.ts",
+    "check:vision": "tsx scripts/check-vision.mts",
+    "setup:storage": "tsx scripts/setup-storage.mts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.46",

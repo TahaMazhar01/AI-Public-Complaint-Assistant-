@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { analyzeComplaint } from "@/lib/ai/analyze";
+import { describePhoto } from "@/lib/ai/vision";
 import { providerLabel } from "@/lib/ai/provider";
 import { composeFormalText } from "@/lib/formal";
 import { nearestNeighbourhood } from "@/lib/geo";
@@ -15,6 +16,7 @@ import {
   insertComplaint,
   nextTrackingId,
 } from "@/lib/store";
+import { uploadPhotos } from "@/lib/storage";
 import type { Complaint, ComplaintEvent, IntakeMode } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -34,6 +36,7 @@ export const maxDuration = 60;
 
 type Stage =
   | "received"
+  | "examined"
   | "understanding"
   | "classified"
   | "routed"
@@ -47,7 +50,8 @@ interface Payload {
   lat?: number | null;
   lng?: number | null;
   intakeMode?: IntakeMode;
-  photoCount?: number;
+  /** Data URLs straight from the file input. */
+  photos?: string[];
   citizenName?: string | null;
   citizenPhone?: string | null;
   locale?: "en" | "ur" | "zh";
@@ -95,18 +99,30 @@ export async function POST(req: NextRequest) {
             ? nearestNeighbourhood(body.lat, body.lng)
             : null;
 
+        const photos = (body.photos ?? []).slice(0, 3);
+
         await emit("received", {
           chars: text.length,
+          photos: photos.length,
           mode: body.intakeMode ?? "text",
           neighbourhood: hood?.name ?? null,
           engine: providerLabel(),
         });
 
-        /* 2 — UNDERSTANDING (the one model call) ----------------------- */
+        /* 2 — EXAMINED (only when a photograph came with the report) --- */
+        let photoNote: string | null = null;
+        if (photos.length) {
+          const seen = await describePhoto(photos[0]);
+          photoNote = seen?.description ?? null;
+          await emit("examined", { photoNote, visionModel: seen?.model });
+        }
+
+        /* 3 — UNDERSTANDING (the one structured call) ------------------ */
         const { analysis, source, ms } = await analyzeComplaint({
           text,
           neighbourhood: hood?.name ?? null,
-          hasPhoto: (body.photoCount ?? 0) > 0,
+          hasPhoto: photos.length > 0,
+          photoNote,
           locale: body.locale ?? "en",
         });
 
@@ -194,6 +210,10 @@ export async function POST(req: NextRequest) {
 
         await emit("drafted", { trackingId, words: formalText.split(/\s+/).length });
 
+        // Filed under the tracking id so a case's evidence stays together.
+        // Best effort: a failed upload must not cost the complaint.
+        const photoUrls = await uploadPhotos(photos, trackingId);
+
         /* 7 — FILED ---------------------------------------------------- */
         const complaint: Complaint = {
           id: crypto.randomUUID(), // replaced by the database on insert
@@ -204,7 +224,7 @@ export async function POST(req: NextRequest) {
           intake_mode: body.intakeMode ?? "text",
           detected_language: analysis.detected_language,
           audio_url: null,
-          photo_urls: [],
+          photo_urls: photoUrls,
           lat: body.lat ?? null,
           lng: body.lng ?? null,
           address_text: hood ? `${hood.name}, Lahore` : null,

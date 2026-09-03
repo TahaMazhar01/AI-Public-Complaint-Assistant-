@@ -98,6 +98,7 @@ export const en = {
     complete: "Complete",
     engine: "Analysis engine",
     received: { label: "Received", doing: "Reading the report" },
+    examined: { label: "Photo read", doing: "Looking at the photograph" },
     understanding: { label: "Understood", doing: "Interpreting language and intent" },
     classified: { label: "Classified", doing: "Identifying the issue" },
     routed: { label: "Routed", doing: "Selecting the responsible authority" },
@@ -116,6 +117,7 @@ export const en = {
     dEscalated: "escalated to {p}",
     dNoMatches: "No matching reports. New case",
     dWords: "{n} word formal complaint",
+    dPhotoUnread: "Photograph could not be read",
   },
 
   receipt: {
@@ -151,6 +153,7 @@ export const en = {
     allComplaints: "All complaints",
     caseHistory: "Case history",
     verbatim: "What was reported, as it was said",
+    photos: "Photographs attached",
     receivedBy: "Received by {mode} · {n}% classification confidence",
     formalFiledWith: "The formal complaint filed with {dept}",
     responsibleAuthority: "Responsible authority",

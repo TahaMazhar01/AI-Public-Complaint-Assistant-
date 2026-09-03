@@ -27,7 +27,12 @@ export default function PipelineView({ events, engine }: Props) {
     if (e.stage !== "error") completed.set(e.stage, e);
   }
   const isDone = completed.has("filed");
-  const activeIndex = STAGE_ORDER.findIndex((s) => !completed.has(s));
+
+  // The photo stage only exists when a photo was attached, otherwise it
+  // would sit pending forever on a text-only complaint.
+  const hasPhoto = (completed.get("received")?.photos ?? 0) > 0;
+  const stages = STAGE_ORDER.filter((s) => s !== "examined" || hasPhoto);
+  const activeIndex = stages.findIndex((s) => !completed.has(s));
 
   useEffect(() => {
     if (isDone) return;
@@ -37,7 +42,7 @@ export default function PipelineView({ events, engine }: Props) {
   }, [isDone]);
 
   const shownElapsed = isDone ? (completed.get("filed")?.at ?? elapsed) : elapsed;
-  const progress = completed.size / STAGE_ORDER.length;
+  const progress = completed.size / stages.length;
 
   return (
     <div className="border-rule bg-paper-raised relative overflow-hidden border">
@@ -62,7 +67,7 @@ export default function PipelineView({ events, engine }: Props) {
         {/* the spine */}
         <span className="bg-rule absolute top-7 bottom-7 left-[1.4rem] w-px sm:left-[1.65rem]" />
 
-        {STAGE_ORDER.map((stage, i) => {
+        {stages.map((stage, i) => {
           const event = completed.get(stage);
           const isActive = i === activeIndex && !isDone;
           const meta = t.pipeline[stage];

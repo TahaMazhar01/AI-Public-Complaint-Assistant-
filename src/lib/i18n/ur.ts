@@ -97,6 +97,7 @@ export const ur: Dictionary = {
     complete: "مکمل",
     engine: "تجزیہ کار",
     received: { label: "موصول", doing: "شکایت پڑھی جا رہی ہے" },
+    examined: { label: "تصویر دیکھی", doing: "تصویر دیکھی جا رہی ہے" },
     understanding: { label: "سمجھ لیا", doing: "زبان اور مقصد سمجھا جا رہا ہے" },
     classified: { label: "درجہ بندی", doing: "مسئلے کی نشاندہی" },
     routed: { label: "بھیج دی گئی", doing: "ذمہ دار ادارے کا انتخاب" },
@@ -115,6 +116,7 @@ export const ur: Dictionary = {
     dEscalated: "{p} تک بڑھا دی گئی",
     dNoMatches: "کوئی ملتی شکایت نہیں۔ نیا کیس",
     dWords: "{n} الفاظ کی باقاعدہ شکایت",
+    dPhotoUnread: "تصویر پڑھی نہیں جا سکی",
   },
 
   receipt: {
@@ -148,6 +150,7 @@ export const ur: Dictionary = {
     allComplaints: "تمام شکایات",
     caseHistory: "کیس کی تفصیل",
     verbatim: "شکایت جیسے بتائی گئی",
+    photos: "منسلک تصاویر",
     receivedBy: "{mode} کے ذریعے موصول · {n}% درجہ بندی کا یقین",
     formalFiledWith: "{dept} کو بھیجی گئی باقاعدہ شکایت",
     responsibleAuthority: "ذمہ دار ادارہ",

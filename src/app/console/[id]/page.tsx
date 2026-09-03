@@ -143,6 +143,29 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
             </p>
           </div>
 
+
+          {c.photo_urls.length > 0 && (
+            <div className="border-console-rule mt-8 border-t pt-7">
+              <h2 className="type-eyebrow text-console-faint mb-4">
+                {t.track.photos}
+              </h2>
+              <ul className="flex flex-wrap gap-3">
+                {c.photo_urls.map((src, i) => (
+                  <li key={src} className="border-console-rule border">
+                    <a href={src} target="_blank" rel="noreferrer">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`${t.track.photos} ${i + 1}`}
+                        className="h-44 w-auto max-w-full object-cover"
+                      />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* letter */}
           <div className="border-console-rule mt-8 border-t pt-7">
             <h2 className="type-eyebrow text-console-faint mb-4">{t.console.formalOnFile}</h2>
