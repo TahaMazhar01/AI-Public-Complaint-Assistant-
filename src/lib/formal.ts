@@ -51,7 +51,7 @@ export function composeFormalText(input: FormalInput): string {
 The Director,
 ${dept.name} (${dept.shortName})
 
-Subject: ${cat.label} — ${where}
+Subject: ${cat.label} at ${where}
 Reference: ${input.trackingId}
 Date: ${fmt(filed)}
 
@@ -61,7 +61,7 @@ I wish to formally bring to your notice a civic matter falling within the remit 
 
 ${input.summary}
 
-The location of the issue is ${where}. ${hazardSentence(input.hazards)}Accordingly, this complaint has been classified as ${input.priority} — ${pri.label}: ${pri.description.toLowerCase()}.
+The location of the issue is ${where}. ${hazardSentence(input.hazards)}Accordingly, this complaint has been classified as ${input.priority} (${pri.label}): ${pri.description.toLowerCase()}.
 
 In line with the service standard applicable to this category, a response is requested on or before ${fmt(deadline)} (${input.slaHours} hours from filing).
 
@@ -70,7 +70,6 @@ I therefore request that the concerned staff be directed to inspect the site and
 Yours faithfully,
 ${input.citizenName?.trim() || "A concerned resident"}
 
-—
 Filed through Awaaz, the AI Public Complaint Assistant.
 This complaint was generated from a citizen report and routed automatically to ${dept.shortName}.
 Tracking reference: ${input.trackingId}`;

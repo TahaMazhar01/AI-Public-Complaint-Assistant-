@@ -3,16 +3,16 @@ import { getI18n } from "@/lib/i18n/server";
 import LanguageSwitcher from "./LanguageSwitcher";
 
 /* The citizen surface header. The authority console has its own,
-   inverted — the two surfaces are never meant to be confused. */
+   inverted, because the two surfaces are never meant to be confused. */
 export default async function Masthead() {
   const { t } = await getI18n();
 
   return (
     <header className="rule-b bg-paper/85 sticky top-0 z-40 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-[1400px] items-center justify-between gap-4 px-5 sm:px-8">
+      <div className="mx-auto flex h-20 max-w-[1400px] items-center justify-between gap-4 px-5 sm:h-28 sm:px-8">
         <Link href="/" className="shrink-0">
           <span
-            className="text-[15px] leading-none"
+            className="text-[22px] leading-none sm:text-[30px]"
             style={{
               fontFamily: "var(--font-archivo)",
               fontVariationSettings: '"wdth" 122, "wght" 700',
@@ -23,7 +23,7 @@ export default async function Masthead() {
           </span>
         </Link>
 
-        <nav className="type-action text-ink-muted hidden items-center gap-7 text-[0.85rem] sm:flex">
+        <nav className="type-action text-ink-muted hidden items-center gap-10 text-[1.05rem] sm:flex">
           <Link href="/track" className="hover:text-ink transition-colors">
             {t.nav.track}
           </Link>
@@ -35,9 +35,9 @@ export default async function Masthead() {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-3">
-          <span className="type-meta text-ink-muted hidden items-center gap-2 sm:flex">
-            <span className="pulse-dot text-resolved block size-1.5 rounded-full bg-current" />
+        <div className="flex items-center gap-4">
+          <span className="type-meta text-ink-muted hidden items-center gap-2 text-[0.85rem] sm:flex">
+            <span className="pulse-dot text-resolved block size-2 rounded-full bg-current" />
             <span className="tracking-wider uppercase">{t.common.city}</span>
           </span>
           <LanguageSwitcher />

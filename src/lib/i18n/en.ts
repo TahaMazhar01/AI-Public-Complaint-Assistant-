@@ -49,7 +49,7 @@ export const en = {
     routingTitleA: "Twelve authorities.",
     routingTitleB: "One place to be heard.",
     routingLead:
-      "The model reads the report and names the problem. A routing table — not the model — decides which department owns it. That keeps the assignment auditable even when the AI gets the wording wrong.",
+      "The model reads the report and names the problem. A routing table, not the model, decides which department owns it. That keeps the assignment auditable even when the AI gets the wording wrong.",
   },
 
   intake: {
@@ -68,7 +68,7 @@ export const en = {
     exSewerage: "Sewerage",
     exElectricity: "Electricity",
     exStreetLights: "Street lights",
-    optionalHint: "Optional — these help us send it to the right office",
+    optionalHint: "Optional. These help us send it to the right office",
     addPhoto: "Add photo",
     useLocation: "Use my location",
     orChooseArea: "or choose your area",
@@ -82,7 +82,7 @@ export const en = {
   voice: {
     tapMic: "Tap the microphone and just talk",
     listening: "Listening… start speaking",
-    weCanHear: "We can hear you — keep going",
+    weCanHear: "We can hear you, keep going",
     whatWeHeard: "What we heard",
     stop: "Stop",
     confirm: "That's right",
@@ -111,11 +111,11 @@ export const en = {
     dConfidence: "{n}% confidence",
     dOnDevice: "on-device",
     dRiskSignals: "{n} risk signals",
-    dDeadline: "{n}-hour deadline",
+    dDeadline: "{n} hour deadline",
     dMatches: "{n} matching reports nearby",
     dEscalated: "escalated to {p}",
-    dNoMatches: "No matching reports — new case",
-    dWords: "{n}-word formal complaint",
+    dNoMatches: "No matching reports. New case",
+    dWords: "{n} word formal complaint",
   },
 
   receipt: {
@@ -124,7 +124,7 @@ export const en = {
     authority: "Authority",
     priority: "Priority",
     dueIn: "Response due in",
-    serviceStandard: "{n}-hour service standard",
+    serviceStandard: "{n} hour service standard",
     whyPriority: "Why this priority",
     othersReported: "{n} other people have reported this",
     oneOtherReported: "1 other person has reported this",
@@ -142,7 +142,7 @@ export const en = {
   track: {
     eyebrow: "Case register",
     title: "Every complaint, and what happened to it.",
-    lead: "Enter a tracking number, or search by area or issue. The register is public on purpose — a complaint nobody can see is a complaint nobody has to answer.",
+    lead: "Enter a tracking number, or search by area or issue. The register is public on purpose: a complaint nobody can see is a complaint nobody has to answer.",
     searchPlaceholder: "Tracking number, area, or issue",
     resultCount: "{n} cases on the register",
     resultCountFor: "{n} cases matching “{q}”",
@@ -161,7 +161,7 @@ export const en = {
     closedWithin: "Closed within",
     pastDeadlineBy: "Past deadline by",
     responseDueIn: "Response due in",
-    standardFor: "{n}-hour service standard for {cat} at {p}",
+    standardFor: "{n} hour service standard for {cat} at {p}",
     filedAt: "Filed",
   },
 

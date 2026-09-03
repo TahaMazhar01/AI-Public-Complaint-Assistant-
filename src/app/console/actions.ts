@@ -10,7 +10,7 @@ const NOTES: Record<ComplaintStatus, string> = {
   acknowledged: "Complaint acknowledged by the department.",
   in_progress: "Field team dispatched to site.",
   resolved: "Work completed and site verified.",
-  rejected: "Closed — outside this department's remit.",
+  rejected: "Closed. Outside this department's remit.",
 };
 
 export async function changeStatus(complaintId: string, status: ComplaintStatus) {

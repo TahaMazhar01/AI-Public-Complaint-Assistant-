@@ -46,7 +46,7 @@ export default function LanguageSwitcher({ dark = false }: { dark?: boolean }) {
         onClick={() => setOpen((v) => !v)}
         disabled={pending}
         className={cn(
-          "inline-flex h-9 items-center gap-2 border px-2.5 transition-colors",
+          "inline-flex h-12 items-center gap-2 border px-3.5 transition-colors",
           dark
             ? "border-console-rule text-console-muted hover:border-console-ink hover:text-console-ink"
             : "border-rule text-ink-muted hover:border-ink hover:text-ink",
@@ -56,8 +56,8 @@ export default function LanguageSwitcher({ dark = false }: { dark?: boolean }) {
         aria-expanded={open}
         aria-label={current.language.choose}
       >
-        <Globe className="size-3.5" />
-        <span className="type-action text-[0.85rem]">
+        <Globe className="size-4" />
+        <span className="type-action text-[0.95rem]">
           {current.language[locale]}
         </span>
       </button>

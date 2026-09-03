@@ -66,7 +66,7 @@ export const zh: Dictionary = {
     exSewerage: "排污",
     exElectricity: "电力",
     exStreetLights: "路灯",
-    optionalHint: "可选 — 这些信息能帮我们送到正确的部门",
+    optionalHint: "可选：这些信息能帮我们送到正确的部门",
     addPhoto: "添加照片",
     useLocation: "使用我的位置",
     orChooseArea: "或选择您所在的区域",
@@ -112,7 +112,7 @@ export const zh: Dictionary = {
     dDeadline: "{n} 小时期限",
     dMatches: "附近有 {n} 条匹配报告",
     dEscalated: "已升级为 {p}",
-    dNoMatches: "无匹配报告 — 新案件",
+    dNoMatches: "无匹配报告。新案件",
     dWords: "{n} 字的正式投诉",
   },
 
@@ -137,7 +137,7 @@ export const zh: Dictionary = {
   track: {
     eyebrow: "案件登记簿",
     title: "每一条投诉，以及它的结果。",
-    lead: "输入追踪编号，或按区域、问题搜索。这份登记簿是刻意公开的 — 没人看得见的投诉，也就没人需要回应。",
+    lead: "输入追踪编号，或按区域、问题搜索。这份登记簿是刻意公开的：没人看得见的投诉，也就没人需要回应。",
     searchPlaceholder: "追踪编号、区域或问题",
     resultCount: "登记簿中共 {n} 件",
     resultCountFor: "匹配“{q}”的案件 {n} 件",

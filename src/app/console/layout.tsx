@@ -11,11 +11,11 @@ export default async function ConsoleLayout({ children }: LayoutProps<"/console"
   return (
     <div className="bg-console text-console-ink flex min-h-full flex-col">
       <header className="border-console-rule bg-console/90 sticky top-0 z-40 border-b backdrop-blur-sm">
-        <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-4 px-5 sm:px-7">
+        <div className="mx-auto flex h-20 max-w-[1600px] sm:h-28 items-center justify-between gap-4 px-5 sm:px-7">
           <div className="flex items-baseline gap-3">
             <Link
               href="/console"
-              className="text-[15px] leading-none"
+              className="text-[22px] leading-none sm:text-[30px]"
               style={{ fontVariationSettings: '"wdth" 122, "wght" 700', letterSpacing: "0.02em" }}
             >
               AWAAZ

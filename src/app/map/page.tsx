@@ -18,11 +18,11 @@ export default async function MapPage() {
 
   return (
     <div className="bg-console text-console-ink flex h-dvh flex-col">
-      <header className="border-console-rule flex h-14 shrink-0 items-center justify-between gap-4 border-b px-5 sm:px-7">
+      <header className="border-console-rule flex h-20 shrink-0 sm:h-28 items-center justify-between gap-4 border-b px-5 sm:px-7">
         <div className="flex items-baseline gap-3">
           <Link
             href="/"
-            className="text-[15px] leading-none"
+            className="text-[22px] leading-none sm:text-[30px]"
             style={{ fontVariationSettings: '"wdth" 122, "wght" 700', letterSpacing: "0.02em" }}
           >
             AWAAZ
