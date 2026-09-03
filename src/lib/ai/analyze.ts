@@ -25,11 +25,13 @@ const HAZARDS = [
 ] as const;
 
 export const analysisSchema = z.object({
-  title: z.string().describe("Neutral official case title, max 9 words, English."),
+  title: z
+    .string()
+    .describe("Neutral official case title, max 9 words, in the requested output language."),
   summary: z
     .string()
     .describe(
-      "Two or three sentences restating the report in formal English, preserving every concrete detail (durations, counts, who is affected). Never invent facts.",
+      "Two or three sentences restating the report in formal register, in the requested output language, preserving every concrete detail (durations, counts, who is affected). Never invent facts.",
     ),
   category: z.enum(CATEGORY_IDS as [CategoryId, ...CategoryId[]]),
   priority: z.enum(["P1", "P2", "P3", "P4"]),
@@ -74,6 +76,10 @@ export interface AnalyzeInput {
   text: string;
   neighbourhood?: string | null;
   hasPhoto?: boolean;
+  /** Language the citizen is reading the app in. The case title and
+      summary come back in this language so nothing they are shown is
+      in a language they did not choose. */
+  locale?: "en" | "ur" | "zh";
 }
 
 export interface AnalyzeOutput {
@@ -123,8 +129,18 @@ function buildPrompt(input: AnalyzeInput): string {
   if (input.hasPhoto) {
     parts.push("The citizen attached a photograph of the issue.");
   }
+  parts.push(OUTPUT_LANGUAGE[input.locale ?? "en"]);
   return parts.join("\n\n");
 }
+
+/* The report can arrive in any language. The OUTPUT language is whichever
+   one the citizen chose in the interface — two separate concerns, and
+   conflating them is how people end up reading a language they did not pick. */
+const OUTPUT_LANGUAGE: Record<"en" | "ur" | "zh", string> = {
+  en: "OUTPUT LANGUAGE: write title, summary and priority_reason in English.",
+  ur: "OUTPUT LANGUAGE: write title, summary and priority_reason in Urdu, in Urdu script. Use no English words beyond unavoidable proper nouns.",
+  zh: "OUTPUT LANGUAGE: write title, summary and priority_reason in Simplified Chinese. Use no English beyond unavoidable proper nouns.",
+};
 
 /* ============================================================
    HEURISTIC FALLBACK

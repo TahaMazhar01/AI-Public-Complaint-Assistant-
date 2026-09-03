@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import StatusActions from "@/components/StatusActions";
 import Timeline from "@/components/Timeline";
 import { HazardChips, PriorityBadge, StatusPill } from "@/components/ui";
-import { LANG_LABEL } from "@/lib/pipeline";
+import { fmt } from "@/lib/i18n";
+import { getI18n } from "@/lib/i18n/server";
+import { detectedLabel } from "@/lib/pipeline";
 import { CATEGORIES, DEPARTMENTS } from "@/lib/taxonomy";
 import { getComplaint, getEvents, listComplaints } from "@/lib/store";
 import { slaCountdown, slaProgress } from "@/lib/utils";
@@ -16,6 +18,7 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
   const c = await getComplaint(decodeURIComponent(id));
   if (!c) notFound();
 
+  const { t } = await getI18n();
   const [events, all] = await Promise.all([getEvents(c.id), listComplaints({ limit: 400 })]);
   const cluster = c.cluster_id
     ? all.filter((x) => x.cluster_id === c.cluster_id && x.id !== c.id)
@@ -34,7 +37,7 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
         className="type-eyebrow text-console-faint hover:text-console-ink inline-flex items-center gap-2 transition-colors"
       >
         <ArrowLeft className="size-3" />
-        Dispatch queue
+        {t.console.dispatchQueue}
       </Link>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:gap-12">
@@ -47,7 +50,7 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
             {c.duplicate_count > 0 && (
               <span className="type-eyebrow border-signal text-signal inline-flex items-center gap-1.5 border px-1.5 py-1">
                 <Layers className="size-3" />
-                {c.duplicate_count} corroborating reports
+                {fmt(t.map.corroborating, { n: c.duplicate_count })}
               </span>
             )}
           </div>
@@ -62,15 +65,19 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
             <span>
               {c.lat?.toFixed(5)}, {c.lng?.toFixed(5)}
             </span>
-            <span>{cat.label}</span>
-            <span>{LANG_LABEL[c.detected_language]}</span>
+            <span>{t.category[c.category]}</span>
+            <span>{detectedLabel(c.detected_language, t)}</span>
           </p>
 
           {/* SLA */}
           <div className="border-console-rule mt-7 border p-4">
             <div className="flex items-baseline justify-between gap-4">
               <span className="type-eyebrow text-console-faint">
-                {c.status === "resolved" ? "Closed" : overdue ? "Past deadline by" : "Time remaining"}
+                {c.status === "resolved"
+                  ? t.console.closed
+                  : overdue
+                    ? t.track.pastDeadlineBy
+                    : t.console.timeRemaining}
               </span>
               <span
                 className={`type-h3 tabular-nums ${overdue ? "text-p1" : c.status === "resolved" ? "text-resolved" : ""}`}
@@ -93,37 +100,42 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
               />
             </div>
             <p className="type-meta text-console-faint mt-2">
-              {c.sla_hours}-hour standard · {dept.shortName}
+              {fmt(t.receipt.serviceStandard, { n: c.sla_hours })} · {dept.shortName}
               {dept.escalatesTo
-                ? ` · escalates to ${DEPARTMENTS[dept.escalatesTo].shortName}`
+                ? ` · ${fmt(t.console.escalatesTo, {
+                    dept: DEPARTMENTS[dept.escalatesTo].shortName,
+                  })}`
                 : ""}
             </p>
           </div>
 
           {/* actions */}
           <div className="mt-6">
-            <h2 className="type-eyebrow text-console-faint mb-3">Move this case</h2>
+            <h2 className="type-eyebrow text-console-faint mb-3">{t.console.moveCase}</h2>
             <StatusActions complaintId={c.id} current={c.status} />
           </div>
 
           {/* citizen's words */}
           <div className="border-console-rule mt-8 border-t pt-7">
-            <h2 className="type-eyebrow text-console-faint mb-4">Citizen report, verbatim</h2>
+            <h2 className="type-eyebrow text-console-faint mb-4">{t.console.citizenReport}</h2>
             <blockquote
               className={`border-console-rule border-l-2 pl-4 ${isUrdu ? "type-urdu border-l-0 border-r-2 pr-4 pl-0 text-right" : "type-body"}`}
             >
               {c.raw_text}
             </blockquote>
             <p className="type-meta text-console-faint mt-3">
-              Received by {c.intake_mode} · {Math.round(c.confidence * 100)}% confidence
-              {c.citizen_name ? ` · ${c.citizen_name}` : " · reporter anonymous"}
+              {fmt(t.track.receivedBy, {
+                mode: t.intakeMode[c.intake_mode],
+                n: Math.round(c.confidence * 100),
+              })}
+              {c.citizen_name ? ` · ${c.citizen_name}` : ` · ${t.console.reporterAnonymous}`}
               {c.citizen_phone ? ` · ${c.citizen_phone}` : ""}
             </p>
           </div>
 
           {/* letter */}
           <div className="border-console-rule mt-8 border-t pt-7">
-            <h2 className="type-eyebrow text-console-faint mb-4">Formal complaint on file</h2>
+            <h2 className="type-eyebrow text-console-faint mb-4">{t.console.formalOnFile}</h2>
             <div className="border-console-rule bg-console-raised max-h-[28rem] overflow-y-auto border p-5 sm:p-6">
               <pre className="type-body whitespace-pre-wrap">{c.formal_text}</pre>
             </div>
@@ -133,13 +145,13 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
         {/* ── rail ── */}
         <aside className="space-y-8">
           <section>
-            <h2 className="type-eyebrow text-console-faint mb-3">Case history</h2>
+            <h2 className="type-eyebrow text-console-faint mb-3">{t.track.caseHistory}</h2>
             <Timeline events={events} dark />
           </section>
 
           {c.hazard_flags.length > 0 && (
             <section>
-              <h2 className="type-eyebrow text-console-faint mb-3">Risk signals</h2>
+              <h2 className="type-eyebrow text-console-faint mb-3">{t.console.riskSignals}</h2>
               <HazardChips hazards={c.hazard_flags} dark />
               <p className="type-body text-console-muted mt-3">{c.priority_reason}</p>
             </section>
@@ -148,7 +160,7 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
           {cluster.length > 0 && (
             <section>
               <h2 className="type-eyebrow text-console-faint mb-3">
-                Merged reports ({cluster.length})
+                {fmt(t.console.mergedList, { n: cluster.length })}
               </h2>
               <ul className="border-console-rule divide-console-rule divide-y border">
                 {cluster.slice(0, 8).map((x) => (

@@ -49,7 +49,7 @@ export function resolveModel(): LanguageModel | null {
       return dashscope(process.env.DASHSCOPE_MODEL ?? "qwen-plus");
     }
     case "google":
-      return google(process.env.GOOGLE_MODEL ?? "gemini-2.5-flash");
+      return google(process.env.GOOGLE_MODEL ?? "gemini-3.6-flash");
     case "anthropic":
       return anthropic(process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5");
     default:
@@ -63,7 +63,7 @@ export function providerLabel(): string {
     case "qwen":
       return `Qwen · ${process.env.DASHSCOPE_MODEL ?? "qwen-plus"}`;
     case "google":
-      return `Gemini · ${process.env.GOOGLE_MODEL ?? "gemini-2.5-flash"}`;
+      return `Gemini · ${process.env.GOOGLE_MODEL ?? "gemini-3.6-flash"}`;
     case "anthropic":
       return `Claude · ${process.env.ANTHROPIC_MODEL ?? "claude-sonnet-5"}`;
     default:

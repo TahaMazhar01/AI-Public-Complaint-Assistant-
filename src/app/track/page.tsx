@@ -2,6 +2,8 @@ import { ArrowRight, Search } from "lucide-react";
 import Link from "next/link";
 import Masthead from "@/components/Masthead";
 import { PriorityBadge, StatusPill } from "@/components/ui";
+import { fmt } from "@/lib/i18n";
+import { getI18n } from "@/lib/i18n/server";
 import { DEPARTMENTS } from "@/lib/taxonomy";
 import { listComplaints } from "@/lib/store";
 import { shortAgo, slaCountdown, slaProgress } from "@/lib/utils";
@@ -12,6 +14,7 @@ export const metadata = { title: "Track a complaint" };
 export default async function TrackIndex({ searchParams }: PageProps<"/track">) {
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q : "";
+  const { t } = await getI18n();
   const results = await listComplaints({ search: q, parentsOnly: true, limit: 40 });
 
   return (
@@ -21,15 +24,14 @@ export default async function TrackIndex({ searchParams }: PageProps<"/track">) 
       <main className="mx-auto w-full max-w-[1100px] flex-1 px-5 py-10 sm:px-8">
         <div className="type-eyebrow text-ink-faint mb-6 flex items-center gap-3">
           <span className="bg-signal block h-px w-8" />
-          <span>Case register</span>
+          <span>{t.track.eyebrow}</span>
         </div>
 
         <h1 className="type-h1 max-w-[18ch] text-balance">
-          Every complaint, and what happened to it.
+          {t.track.title}
         </h1>
         <p className="type-lead mt-5 max-w-[52ch]">
-          Enter a tracking number, or search by area or issue. The register is public
-          on purpose — a complaint nobody can see is a complaint nobody has to answer.
+          {t.track.lead}
         </p>
 
         {/* ── search ── */}
@@ -39,19 +41,20 @@ export default async function TrackIndex({ searchParams }: PageProps<"/track">) 
             <input
               name="q"
               defaultValue={q}
-              placeholder="AWZ-LHR-2609-0043, or “Gulberg”, or “sewerage”"
+              placeholder={t.track.searchPlaceholder}
               className="type-body placeholder:text-ink-faint/70 w-full bg-transparent py-2.5 outline-none"
             />
           </div>
           <button className="bg-ink text-paper hover:bg-signal inline-flex items-center gap-2 px-4 transition-colors">
-            <span className="type-eyebrow">Search</span>
+            <span className="type-action text-[0.85rem]">{t.common.search}</span>
             <ArrowRight className="size-3.5" />
           </button>
         </form>
 
         <p className="type-meta text-ink-faint mt-4">
-          {results.length} case{results.length === 1 ? "" : "s"}
-          {q ? ` matching “${q}”` : " on the register"}
+          {q
+            ? fmt(t.track.resultCountFor, { n: results.length, q })
+            : fmt(t.track.resultCount, { n: results.length })}
         </p>
 
         {/* ── register ── */}
@@ -71,14 +74,14 @@ export default async function TrackIndex({ searchParams }: PageProps<"/track">) 
                       <PriorityBadge priority={c.priority} withLabel={false} />
                       {c.duplicate_count > 0 && (
                         <span className="type-eyebrow border-signal text-signal border px-1.5 py-0.5">
-                          +{c.duplicate_count} reports
+                          +{c.duplicate_count}
                         </span>
                       )}
                     </div>
-                    <h2 className="type-h3 mt-2 truncate">{c.title}</h2>
+                    <h2 className="type-h3 mt-2 truncate">{t.category[c.category]}</h2>
                     <p className="type-meta text-ink-faint mt-1.5">
                       {c.neighbourhood} · {DEPARTMENTS[c.department_id].shortName} ·{" "}
-                      {shortAgo(c.created_at)} ago
+                      {fmt(t.console.reportedAgo, { t: shortAgo(c.created_at) })}
                     </p>
                   </div>
 
@@ -88,7 +91,7 @@ export default async function TrackIndex({ searchParams }: PageProps<"/track">) 
                       <div
                         className={`type-meta mt-1.5 tabular-nums ${overdue ? "text-p1" : "text-ink-faint"}`}
                       >
-                        {c.status === "resolved" ? "Closed" : slaCountdown(c.due_at)}
+                        {c.status === "resolved" ? t.console.closed : slaCountdown(c.due_at)}
                       </div>
                     </div>
                     <ArrowRight className="text-ink-faint group-hover:text-ink hidden size-4 transition-colors sm:block" />
@@ -101,10 +104,8 @@ export default async function TrackIndex({ searchParams }: PageProps<"/track">) 
 
         {results.length === 0 && (
           <div className="rule-b py-16 text-center">
-            <p className="type-h3 text-ink-muted">Nothing on the register matches that.</p>
-            <p className="type-meta text-ink-faint mt-2">
-              Check the tracking number, or search by area instead.
-            </p>
+            <p className="type-h3 text-ink-muted">{t.track.nothingMatches}</p>
+            <p className="type-meta text-ink-faint mt-2">{t.track.checkNumber}</p>
           </div>
         )}
       </main>

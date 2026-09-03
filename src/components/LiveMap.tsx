@@ -9,7 +9,7 @@ const LeafletMap = dynamic(() => import("./LeafletMap"), {
   ssr: false,
   loading: () => (
     <div className="bg-console grid h-full place-items-center">
-      <span className="type-eyebrow text-console-faint">Loading map...</span>
+      <span className="type-eyebrow text-console-faint">Loading…</span>
     </div>
   ),
 });

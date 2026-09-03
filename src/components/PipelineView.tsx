@@ -2,7 +2,8 @@
 
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { STAGE_META, STAGE_ORDER, type StageEvent, type StageId, stageDetail } from "@/lib/pipeline";
+import { STAGE_ORDER, type StageEvent, type StageId, stageDetail } from "@/lib/pipeline";
+import { useI18n } from "./LocaleProvider";
 import { cn } from "@/lib/utils";
 
 /* ============================================================
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export default function PipelineView({ events, engine }: Props) {
+  const { t } = useI18n();
   const [elapsed, setElapsed] = useState(0);
   const completed = new Map<StageId, StageEvent>();
   for (const e of events) {
@@ -49,7 +51,7 @@ export default function PipelineView({ events, engine }: Props) {
 
       <div className="rule-b flex items-center justify-between px-4 py-2.5">
         <span className="type-eyebrow text-ink-faint">
-          {isDone ? "Complete" : "Processing"}
+          {isDone ? t.pipeline.complete : t.pipeline.processing}
         </span>
         <span className="type-meta text-ink-muted tabular-nums">
           {(shownElapsed / 1000).toFixed(1)}s
@@ -63,7 +65,7 @@ export default function PipelineView({ events, engine }: Props) {
         {STAGE_ORDER.map((stage, i) => {
           const event = completed.get(stage);
           const isActive = i === activeIndex && !isDone;
-          const meta = STAGE_META[stage];
+          const meta = t.pipeline[stage];
 
           return (
             <li key={stage} className="relative flex gap-4 py-2">
@@ -116,7 +118,7 @@ export default function PipelineView({ events, engine }: Props) {
                     transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                     className="type-meta text-ink-muted mt-1 break-words"
                   >
-                    {stageDetail(event)}
+                    {stageDetail(event, t)}
                   </motion.p>
                 )}
               </div>
@@ -137,7 +139,7 @@ export default function PipelineView({ events, engine }: Props) {
 
       {engine && (
         <div className="rule-t bg-paper-sunk px-4 py-2">
-          <p className="type-meta text-ink-faint">Analysis engine · {engine}</p>
+          <p className="type-meta text-ink-faint">{t.pipeline.engine} · {engine}</p>
         </div>
       )}
     </div>

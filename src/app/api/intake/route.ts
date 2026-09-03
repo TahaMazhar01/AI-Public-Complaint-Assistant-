@@ -40,6 +40,7 @@ interface Payload {
   photoCount?: number;
   citizenName?: string | null;
   citizenPhone?: string | null;
+  locale?: "en" | "ur" | "zh";
 }
 
 /** Floor each stage so the sequence stays legible to a human eye.
@@ -96,6 +97,7 @@ export async function POST(req: NextRequest) {
           text,
           neighbourhood: hood?.name ?? null,
           hasPhoto: (body.photoCount ?? 0) > 0,
+          locale: body.locale ?? "en",
         });
 
         await emit("understanding", {

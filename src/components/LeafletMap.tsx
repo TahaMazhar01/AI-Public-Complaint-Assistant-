@@ -4,7 +4,9 @@ import "leaflet/dist/leaflet.css";
 import { CircleMarker, MapContainer, Popup, TileLayer, ZoomControl } from "react-leaflet";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CATEGORIES, CITY, DEPARTMENTS, PRIORITY_META } from "@/lib/taxonomy";
+import { fmt } from "@/lib/i18n";
+import { CITY, DEPARTMENTS } from "@/lib/taxonomy";
+import { useI18n } from "./LocaleProvider";
 import type { Complaint, Priority } from "@/lib/types";
 import { shortAgo } from "@/lib/utils";
 
@@ -26,6 +28,7 @@ const PRIORITY_HEX: Record<Priority, string> = {
 };
 
 export default function LeafletMap({ complaints }: { complaints: Complaint[] }) {
+  const { t } = useI18n();
   const [filter, setFilter] = useState<Priority | "all">("all");
 
   const visible = useMemo(
@@ -80,19 +83,19 @@ export default function LeafletMap({ complaints }: { complaints: Complaint[] }) 
                 <div className="type-meta text-ink-faint">{c.tracking_id}</div>
                 <div className="type-h3 text-ink mt-1">{c.title}</div>
                 <div className="type-meta text-ink-muted mt-1.5">
-                  {CATEGORIES[c.category].label} · {DEPARTMENTS[c.department_id].shortName} ·{" "}
-                  {shortAgo(c.created_at)} ago
+                  {t.category[c.category]} · {DEPARTMENTS[c.department_id].shortName} ·{" "}
+                  {fmt(t.console.reportedAgo, { t: shortAgo(c.created_at) })}
                 </div>
                 {c.duplicate_count > 0 && (
                   <div className="type-meta text-signal mt-1">
-                    {c.duplicate_count} corroborating reports
+                    {fmt(t.map.corroborating, { n: c.duplicate_count })}
                   </div>
                 )}
                 <Link
                   href={`/track/${c.tracking_id}`}
                   className="type-eyebrow border-rule text-ink-muted hover:border-ink hover:text-ink mt-2.5 inline-block border px-2 py-1 transition-colors"
                 >
-                  Open case
+                  {t.map.openCase}
                 </Link>
               </Popup>
             </CircleMarker>
@@ -102,7 +105,7 @@ export default function LeafletMap({ complaints }: { complaints: Complaint[] }) 
 
       {/* legend / filter */}
       <div className="border-console-rule bg-console/90 absolute top-4 left-4 z-[1000] border p-3 backdrop-blur-sm">
-        <div className="type-eyebrow text-console-faint mb-2.5">Priority</div>
+        <div className="type-eyebrow text-console-faint mb-2.5">{t.map.priority}</div>
         <ul className="space-y-1.5">
           {(["all", "P1", "P2", "P3", "P4"] as const).map((p) => (
             <li key={p}>
@@ -121,13 +124,13 @@ export default function LeafletMap({ complaints }: { complaints: Complaint[] }) 
                     border: p === "all" ? "1px solid currentColor" : "none",
                   }}
                 />
-                {p === "all" ? "All cases" : `${p} · ${PRIORITY_META[p].label}`}
+                {p === "all" ? t.map.allCases : `${p} · ${t.priority[p].label}`}
               </button>
             </li>
           ))}
         </ul>
         <div className="border-console-rule type-meta text-console-faint mt-3 border-t pt-2.5">
-          {visible.length} plotted · larger pins are clusters
+          {fmt(t.map.plotted, { n: visible.length })}
         </div>
       </div>
     </div>

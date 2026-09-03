@@ -3,9 +3,11 @@
 import { motion } from "motion/react";
 import { ArrowRight, Check, Copy, FileText, Layers, Plus } from "lucide-react";
 import { useState } from "react";
-import { DEPARTMENTS, PRIORITY_META } from "@/lib/taxonomy";
+import { fmt } from "@/lib/i18n";
+import { DEPARTMENTS } from "@/lib/taxonomy";
 import type { Complaint } from "@/lib/types";
 import { slaCountdown } from "@/lib/utils";
+import { useI18n } from "./LocaleProvider";
 import { HazardChips, PriorityBadge } from "./ui";
 
 /* ============================================================
@@ -27,6 +29,7 @@ export default function ComplaintResult({
   escalated: boolean;
   onReset: () => void;
 }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
   const [letterOpen, setLetterOpen] = useState(false);
   const dept = DEPARTMENTS[complaint.department_id];
@@ -48,7 +51,7 @@ export default function ComplaintResult({
 
       {/* ── header ── */}
       <div className="rule-b flex items-center justify-between px-4 py-2.5 sm:px-5">
-        <span className="type-eyebrow text-ink-faint">Complaint filed</span>
+        <span className="type-eyebrow text-ink-faint">{t.receipt.filed}</span>
         <span className="type-meta text-ink-faint">
           {new Date(complaint.created_at).toLocaleTimeString("en-GB", {
             hour: "2-digit",
@@ -59,7 +62,7 @@ export default function ComplaintResult({
 
       {/* ── tracking number ── */}
       <div className="rule-b px-4 py-6 sm:px-5">
-        <div className="type-eyebrow text-ink-faint mb-3">Your tracking number</div>
+        <div className="type-eyebrow text-ink-faint mb-3">{t.receipt.trackingNumber}</div>
         <div className="flex flex-wrap items-center gap-3">
           <span className="font-mono text-[clamp(1.25rem,3.4vw,1.85rem)] leading-none tracking-tight tabular-nums">
             {complaint.tracking_id}
@@ -69,7 +72,7 @@ export default function ComplaintResult({
             className="border-rule text-ink-muted hover:border-ink hover:text-ink inline-flex items-center gap-1.5 border px-2 py-1.5 transition-colors"
           >
             {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-            <span className="type-eyebrow">{copied ? "Copied" : "Copy"}</span>
+            <span className="type-eyebrow">{copied ? t.common.copied : t.common.copy}</span>
           </button>
         </div>
         <h2 className="type-h2 mt-5 text-balance">{complaint.title}</h2>
@@ -78,24 +81,24 @@ export default function ComplaintResult({
       {/* ── the three facts that matter ── */}
       <dl className="rule-b grid grid-cols-2 sm:grid-cols-3">
         <div className="rule-r px-4 py-4 sm:px-5">
-          <dt className="type-eyebrow text-ink-faint">Authority</dt>
+          <dt className="type-eyebrow text-ink-faint">{t.receipt.authority}</dt>
           <dd className="type-h3 mt-2">{dept.shortName}</dd>
           <dd className="type-meta text-ink-faint mt-1">{dept.name}</dd>
         </div>
         <div className="sm:rule-r px-4 py-4 sm:px-5">
-          <dt className="type-eyebrow text-ink-faint">Priority</dt>
+          <dt className="type-eyebrow text-ink-faint">{t.receipt.priority}</dt>
           <dd className="mt-2">
             <PriorityBadge priority={complaint.priority} />
           </dd>
           <dd className="type-meta text-ink-faint mt-1.5">
-            {PRIORITY_META[complaint.priority].description}
+            {t.priority[complaint.priority].desc}
           </dd>
         </div>
         <div className="rule-t col-span-2 px-4 py-4 sm:col-span-1 sm:border-t-0 sm:px-5">
-          <dt className="type-eyebrow text-ink-faint">Response due in</dt>
+          <dt className="type-eyebrow text-ink-faint">{t.receipt.dueIn}</dt>
           <dd className="type-h3 mt-2 tabular-nums">{slaCountdown(complaint.due_at)}</dd>
           <dd className="type-meta text-ink-faint mt-1">
-            {complaint.sla_hours}-hour service standard
+            {fmt(t.receipt.serviceStandard, { n: complaint.sla_hours })}
           </dd>
         </div>
       </dl>
@@ -103,7 +106,7 @@ export default function ComplaintResult({
       {/* ── why this priority ── */}
       {complaint.hazard_flags.length > 0 && (
         <div className="rule-b px-4 py-4 sm:px-5">
-          <div className="type-eyebrow text-ink-faint mb-3">Why this priority</div>
+          <div className="type-eyebrow text-ink-faint mb-3">{t.receipt.whyPriority}</div>
           <HazardChips hazards={complaint.hazard_flags} />
           <p className="type-body text-ink-muted mt-3">{complaint.priority_reason}</p>
         </div>
@@ -120,13 +123,13 @@ export default function ComplaintResult({
           <Layers className="text-signal mt-0.5 size-4 shrink-0" />
           <div>
             <p className="type-h3">
-              {matches} other {matches === 1 ? "person has" : "people have"} reported this
+              {matches === 1
+                ? t.receipt.oneOtherReported
+                : fmt(t.receipt.othersReported, { n: matches })}
             </p>
             <p className="type-body text-ink-muted mt-1">
-              Your report was merged into the same case rather than filed as a duplicate.
-              {escalated
-                ? " The volume of corroborating reports raised its priority automatically."
-                : " A single case with more reporters carries more weight with the department."}
+              {t.receipt.mergedExplain}{" "}
+              {escalated ? t.receipt.mergedEscalated : t.receipt.mergedWeight}
             </p>
           </div>
         </motion.div>
@@ -140,9 +143,9 @@ export default function ComplaintResult({
         >
           <span className="flex items-center gap-2.5">
             <FileText className="text-ink-muted size-3.5" />
-            <span className="type-eyebrow">The formal complaint we filed</span>
+            <span className="type-eyebrow">{t.receipt.formalComplaint}</span>
           </span>
-          <span className="type-meta text-ink-faint">{letterOpen ? "Hide" : "Read"}</span>
+          <span className="type-meta text-ink-faint">{letterOpen ? t.common.hide : t.common.read}</span>
         </button>
 
         {letterOpen && (
@@ -165,7 +168,7 @@ export default function ComplaintResult({
           href={`/track/${complaint.tracking_id}`}
           className="bg-ink text-paper hover:bg-signal inline-flex items-center gap-2 px-4 py-2.5 transition-colors"
         >
-          <span className="type-eyebrow">Track this complaint</span>
+          <span className="type-action text-[0.85rem]">{t.receipt.trackThis}</span>
           <ArrowRight className="size-3.5" />
         </a>
         <button
@@ -173,7 +176,7 @@ export default function ComplaintResult({
           className="border-rule text-ink-muted hover:border-ink hover:text-ink inline-flex items-center gap-2 border px-4 py-2.5 transition-colors"
         >
           <Plus className="size-3.5" />
-          <span className="type-eyebrow">Report something else</span>
+          <span className="type-action text-[0.85rem]">{t.receipt.reportAnother}</span>
         </button>
       </div>
     </motion.div>

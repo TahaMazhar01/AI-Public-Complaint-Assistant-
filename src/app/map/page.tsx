@@ -1,13 +1,16 @@
 import Link from "next/link";
 import LiveMap from "@/components/LiveMap";
 import ConsoleClock from "@/components/ConsoleClock";
-import { CITY } from "@/lib/taxonomy";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { fmt } from "@/lib/i18n";
+import { getI18n } from "@/lib/i18n/server";
 import { getStats, listComplaints } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Live map" };
 
 export default async function MapPage() {
+  const { t } = await getI18n();
   const [complaints, stats] = await Promise.all([
     listComplaints({ status: "open", parentsOnly: true, limit: 400 }),
     getStats(),
@@ -24,24 +27,25 @@ export default async function MapPage() {
           >
             AWAAZ
           </Link>
-          <span className="type-eyebrow text-console-faint">Live map</span>
+          <span className="type-eyebrow text-console-faint">{t.map.title}</span>
         </div>
 
         <div className="type-meta text-console-muted hidden items-center gap-5 sm:flex">
-          <span>{stats.open} open</span>
-          <span className="text-p1">{stats.critical} critical</span>
-          <span className="text-p1">{stats.overdue} past deadline</span>
-          <span>{CITY.name}</span>
+          <span>{fmt(t.map.open, { n: stats.open })}</span>
+          <span className="text-p1">{fmt(t.map.critical, { n: stats.critical })}</span>
+          <span className="text-p1">{fmt(t.map.overdue, { n: stats.overdue })}</span>
+          <span>{t.common.city}</span>
           <ConsoleClock />
         </div>
 
         <nav className="type-eyebrow text-console-faint flex items-center gap-5">
           <Link href="/console" className="hover:text-console-ink transition-colors">
-            Console
+            {t.map.console}
           </Link>
           <Link href="/" className="hover:text-console-ink transition-colors">
-            Exit
+            {t.common.exit}
           </Link>
+          <LanguageSwitcher dark />
         </nav>
       </header>
 

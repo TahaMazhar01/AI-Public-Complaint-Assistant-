@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import Masthead from "@/components/Masthead";
 import Timeline from "@/components/Timeline";
 import { HazardChips, PriorityBadge, StatusPill } from "@/components/ui";
-import { LANG_LABEL } from "@/lib/pipeline";
+import { fmt } from "@/lib/i18n";
+import { getI18n } from "@/lib/i18n/server";
+import { detectedLabel } from "@/lib/pipeline";
 import { CATEGORIES, DEPARTMENTS } from "@/lib/taxonomy";
 import { getComplaint, getEvents, listComplaints } from "@/lib/store";
 import { slaCountdown, slaProgress } from "@/lib/utils";
@@ -16,6 +18,7 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
   const complaint = await getComplaint(decodeURIComponent(id));
   if (!complaint) notFound();
 
+  const { t } = await getI18n();
   const [events, siblings] = await Promise.all([
     getEvents(complaint.id),
     complaint.cluster_id
@@ -43,7 +46,7 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
           className="type-eyebrow text-ink-faint hover:text-ink inline-flex items-center gap-2 transition-colors"
         >
           <ArrowLeft className="size-3" />
-          All complaints
+          {t.track.allComplaints}
         </Link>
 
         {/* ── case header ── */}
@@ -61,9 +64,9 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
               <MapPin className="size-3" />
               {complaint.address_text}
             </span>
-            <span>{cat.label}</span>
+            <span>{t.category[complaint.category]}</span>
             <span>
-              Filed{" "}
+              {t.track.filedAt}{" "}
               {new Date(complaint.created_at).toLocaleString("en-GB", {
                 day: "2-digit",
                 month: "short",
@@ -71,7 +74,7 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
                 minute: "2-digit",
               })}
             </span>
-            <span>{LANG_LABEL[complaint.detected_language]}</span>
+            <span>{detectedLabel(complaint.detected_language, t)}</span>
           </p>
         </div>
 
@@ -80,10 +83,10 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
           <div className="flex items-baseline justify-between gap-4">
             <span className="type-eyebrow text-ink-faint">
               {complaint.status === "resolved"
-                ? "Closed within"
+                ? t.track.closedWithin
                 : overdue
-                  ? "Past deadline by"
-                  : "Response due in"}
+                  ? t.track.pastDeadlineBy
+                  : t.track.responseDueIn}
             </span>
             <span
               className={`type-h3 tabular-nums ${overdue ? "text-p1" : complaint.status === "resolved" ? "text-resolved" : ""}`}
@@ -106,20 +109,23 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
             />
           </div>
           <p className="type-meta text-ink-faint mt-2">
-            {complaint.sla_hours}-hour service standard for {cat.label.toLowerCase()} at{" "}
-            {complaint.priority}
+            {fmt(t.track.standardFor, {
+              n: complaint.sla_hours,
+              cat: t.category[complaint.category],
+              p: complaint.priority,
+            })}
           </p>
         </div>
 
         <div className="grid gap-10 py-8 lg:grid-cols-[1.15fr_0.85fr] lg:gap-14">
           {/* ── left: history + report ── */}
           <div>
-            <h2 className="type-eyebrow text-ink-faint mb-6">Case history</h2>
+            <h2 className="type-eyebrow text-ink-faint mb-6">{t.track.caseHistory}</h2>
             <Timeline events={events} />
 
             <div className="rule-t mt-10 pt-8">
               <h2 className="type-eyebrow text-ink-faint mb-4">
-                What was reported, as it was said
+                {t.track.verbatim}
               </h2>
               <blockquote
                 className={`border-rule-strong border-l-2 pl-4 ${isUrdu ? "type-urdu border-l-0 border-r-2 pr-4 pl-0 text-right" : "type-body"}`}
@@ -127,14 +133,16 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
                 {complaint.raw_text}
               </blockquote>
               <p className="type-meta text-ink-faint mt-3">
-                Received by {complaint.intake_mode} ·{" "}
-                {Math.round(complaint.confidence * 100)}% classification confidence
+                {fmt(t.track.receivedBy, {
+                  mode: t.intakeMode[complaint.intake_mode],
+                  n: Math.round(complaint.confidence * 100),
+                })}
               </p>
             </div>
 
             <div className="rule-t mt-10 pt-8">
               <h2 className="type-eyebrow text-ink-faint mb-4">
-                The formal complaint filed with {dept.shortName}
+                {fmt(t.track.formalFiledWith, { dept: dept.shortName })}
               </h2>
               <div className="border-rule bg-paper-raised max-h-[30rem] overflow-y-auto border p-5 sm:p-7">
                 <pre className="type-body whitespace-pre-wrap">{complaint.formal_text}</pre>
@@ -145,14 +153,14 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
           {/* ── right: authority, risk, cluster ── */}
           <aside className="space-y-8">
             <section>
-              <h2 className="type-eyebrow text-ink-faint mb-3">Responsible authority</h2>
+              <h2 className="type-eyebrow text-ink-faint mb-3">{t.track.responsibleAuthority}</h2>
               <div className="border-rule border p-4">
                 <div className="type-h3">{dept.shortName}</div>
                 <p className="type-body text-ink-muted mt-1">{dept.name}</p>
-                <p className="type-meta text-ink-faint mt-3">{dept.remit}</p>
+                <p className="type-meta text-ink-faint mt-3">{t.remit[dept.id]}</p>
                 {complaint.assigned_officer && (
                   <p className="rule-t type-meta text-ink-muted mt-3 pt-3">
-                    Assigned · {complaint.assigned_officer}
+                    {t.track.assigned} · {complaint.assigned_officer}
                   </p>
                 )}
               </div>
@@ -160,7 +168,7 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
 
             {complaint.hazard_flags.length > 0 && (
               <section>
-                <h2 className="type-eyebrow text-ink-faint mb-3">Why this priority</h2>
+                <h2 className="type-eyebrow text-ink-faint mb-3">{t.receipt.whyPriority}</h2>
                 <HazardChips hazards={complaint.hazard_flags} />
                 <p className="type-body text-ink-muted mt-3">{complaint.priority_reason}</p>
               </section>
@@ -168,13 +176,15 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
 
             {cluster.length > 0 && (
               <section>
-                <h2 className="type-eyebrow text-ink-faint mb-3">Reported by others</h2>
+                <h2 className="type-eyebrow text-ink-faint mb-3">{t.track.reportedByOthers}</h2>
                 <div className="border-signal/40 bg-signal/6 border p-4">
                   <div className="flex items-start gap-2.5">
                     <Layers className="text-signal mt-0.5 size-4 shrink-0" />
                     <p className="type-body">
-                      <strong className="font-semibold">{cluster.length} other reports</strong>{" "}
-                      of the same issue at this location are joined to this case.
+                      <strong className="font-semibold">
+                        {fmt(t.track.otherReports, { n: cluster.length })}
+                      </strong>{" "}
+                      {t.track.joinedToCase}
                     </p>
                   </div>
                   <ul className="mt-3 space-y-1.5">

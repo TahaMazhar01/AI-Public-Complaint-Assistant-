@@ -2,6 +2,7 @@
 
 import { Check, Mic, Square } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useI18n } from "./LocaleProvider";
 import { Button } from "./ui";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,9 @@ import { cn } from "@/lib/utils";
      2. Can it hear ME?           → the bars move with my voice
      3. Did it get my words?      → the transcript appears live
    A spinner would answer none of those.
+
+   The recogniser follows the chosen interface language: pick
+   اردو and it listens in Urdu, 中文 and it listens in Chinese.
    ============================================================ */
 
 const BAR_COUNT = 7;
@@ -21,16 +25,13 @@ const BAR_COUNT = 7;
 export default function VoiceCapture({
   value,
   onChange,
-  lang,
-  onLangChange,
   onDone,
 }: {
   value: string;
   onChange: (text: string) => void;
-  lang: "ur-PK" | "en-US";
-  onLangChange: (l: "ur-PK" | "en-US") => void;
   onDone: () => void;
 }) {
+  const { t, locale } = useI18n();
   const [listening, setListening] = useState(false);
   const [levels, setLevels] = useState<number[]>(Array(BAR_COUNT).fill(0.08));
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export default function VoiceCapture({
     rafRef.current = null;
     recognitionRef.current?.stop();
     recognitionRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current?.getTracks().forEach((tr) => tr.stop());
     streamRef.current = null;
     void audioCtxRef.current?.close().catch(() => {});
     audioCtxRef.current = null;
@@ -100,7 +101,7 @@ export default function VoiceCapture({
   const start = useCallback(async () => {
     const Ctor = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Ctor) {
-      setError("This browser can't listen. Please use Chrome, or write instead.");
+      setError(t.voice.noBrowser);
       return;
     }
     setError(null);
@@ -110,7 +111,7 @@ export default function VoiceCapture({
     await startMeter();
 
     const rec = new Ctor();
-    rec.lang = lang;
+    rec.lang = t.meta.speechLang;
     rec.continuous = true;
     rec.interimResults = true;
 
@@ -126,10 +127,10 @@ export default function VoiceCapture({
     rec.onerror = (e: SpeechRecognitionErrorEvent) => {
       setError(
         e.error === "not-allowed"
-          ? "We need microphone permission. Allow it, or write instead."
+          ? t.voice.noPermission
           : e.error === "no-speech"
-            ? "We didn't catch anything. Try again, a little closer."
-            : "Listening stopped. Tap the microphone to try again.",
+            ? t.voice.noSpeech
+            : t.voice.stopped,
       );
       teardown();
     };
@@ -138,40 +139,18 @@ export default function VoiceCapture({
     recognitionRef.current = rec;
     rec.start();
     setListening(true);
-  }, [lang, onChange, startMeter, teardown, value]);
+  }, [onChange, startMeter, t, teardown, value]);
 
   const hasWords = value.trim().length > 0;
+  const transcriptIsUrdu = /[؀-ۿ]/.test(value);
 
   return (
-    <div className="flex flex-col items-center px-5 py-9 text-center sm:px-8 sm:py-12">
-      {/* language — chosen before speaking, never buried */}
-      <div className="border-rule mb-9 inline-flex border p-1">
-        {(
-          [
-            { id: "ur-PK" as const, en: "Urdu", ur: "اردو" },
-            { id: "en-US" as const, en: "English", ur: "انگریزی" },
-          ]
-        ).map((l) => (
-          <button
-            key={l.id}
-            onClick={() => !listening && onLangChange(l.id)}
-            disabled={listening}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 transition-colors disabled:cursor-not-allowed",
-              lang === l.id ? "bg-ink text-paper" : "text-ink-muted hover:text-ink",
-            )}
-          >
-            <span className="type-action">{l.en}</span>
-            <span className="type-urdu-inline text-[0.9rem] opacity-70">{l.ur}</span>
-          </button>
-        ))}
-      </div>
-
+    <div className="flex flex-col items-center px-5 py-10 text-center sm:px-8 sm:py-12">
       {/* the microphone */}
       <button
         onClick={listening ? teardown : start}
         className="relative grid size-32 place-items-center rounded-full transition-transform active:scale-95 sm:size-36"
-        aria-label={listening ? "Stop listening" : "Start speaking"}
+        aria-label={listening ? t.voice.stop : t.voice.tapMic}
       >
         {listening && (
           <>
@@ -209,59 +188,52 @@ export default function VoiceCapture({
         ))}
       </div>
 
-      {/* what is happening, in both languages */}
-      <div className="mt-5">
-        {listening ? (
-          <>
-            <p className="type-action-lg text-signal">
-              {heardSomething ? "We can hear you — keep going" : "Listening… start speaking"}
-            </p>
-            <p className="type-urdu text-ink-muted mt-1 text-[1rem]">
-              {heardSomething ? "ہم سن رہے ہیں، بولتے رہیے" : "سن رہے ہیں، بولنا شروع کریں"}
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="type-action-lg">Tap the microphone and just talk</p>
-            <p className="type-urdu text-ink-muted mt-1 text-[1rem]">
-              مائیک دبائیں اور بولیں
-            </p>
-          </>
+      {/* what is happening */}
+      <p
+        className={cn(
+          "type-action-lg mt-5 max-w-[26ch]",
+          listening && "text-signal",
         )}
-      </div>
+      >
+        {listening
+          ? heardSomething
+            ? t.voice.weCanHear
+            : t.voice.listening
+          : t.voice.tapMic}
+      </p>
 
       {/* live transcript */}
       {hasWords && (
-        <div className="border-rule bg-paper-sunk mt-8 w-full border p-4 text-left sm:p-5">
-          <p className="type-eyebrow text-ink-faint mb-2.5">What we heard</p>
+        <div className="border-rule bg-paper-sunk mt-8 w-full border p-4 text-start sm:p-5">
+          <p className="type-eyebrow text-ink-faint mb-2.5">{t.voice.whatWeHeard}</p>
           <p
-            className={cn(
-              lang === "ur-PK" && /[؀-ۿ]/.test(value)
-                ? "type-urdu text-[1.05rem]"
-                : "type-lead text-ink",
-            )}
+            className="type-lead text-ink"
+            dir={transcriptIsUrdu ? "rtl" : undefined}
+            style={
+              transcriptIsUrdu && locale !== "ur"
+                ? { fontFamily: "var(--font-nastaliq)", lineHeight: 2.1 }
+                : undefined
+            }
           >
             {value}
           </p>
         </div>
       )}
 
-      {error && (
-        <p className="type-body text-p2 mt-5 max-w-[34ch]">{error}</p>
-      )}
+      {error && <p className="type-body text-p2 mt-5 max-w-[34ch]">{error}</p>}
 
       {/* onward */}
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         {listening ? (
-          <Button variant="outline" size="lg" urdu="روکیں" onClick={teardown}>
-            <Square className="mr-2 size-4" />
-            Stop
+          <Button variant="outline" size="lg" onClick={teardown}>
+            <Square className="me-2 size-4" />
+            {t.voice.stop}
           </Button>
         ) : (
           hasWords && (
-            <Button size="lg" urdu="ٹھیک ہے" onClick={onDone}>
-              <Check className="mr-2 size-4" />
-              That&apos;s right
+            <Button size="lg" onClick={onDone}>
+              <Check className="me-2 size-4" />
+              {t.voice.confirm}
             </Button>
           )
         )}
@@ -272,7 +244,7 @@ export default function VoiceCapture({
           onClick={() => onChange("")}
           className="type-body text-ink-faint hover:text-ink mt-4 underline underline-offset-4 transition-colors"
         >
-          Clear and say it again
+          {t.voice.clearRetry}
         </button>
       )}
     </div>

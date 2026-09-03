@@ -14,44 +14,76 @@ import {
 } from "lucide-react";
 import { useRef, useState } from "react";
 import { NEIGHBOURHOODS, nearestNeighbourhood } from "@/lib/geo";
+import { fmt, type Locale } from "@/lib/i18n";
 import type { StageEvent } from "@/lib/pipeline";
 import type { Complaint, IntakeMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import ComplaintResult from "./ComplaintResult";
+import { useI18n } from "./LocaleProvider";
 import PipelineView from "./PipelineView";
 import VoiceCapture from "./VoiceCapture";
-import { BiLabel, Button } from "./ui";
+import { Button } from "./ui";
 
 /* ============================================================
    INTAKE
    The first decision a citizen makes is "do I talk or do I type?"
-   so that is the first thing on screen — two doors, equal size,
-   both labelled in Urdu and English. Everything else is optional
-   and clearly marked as such.
+   so that is the first thing on screen — two doors, equal size.
+   Everything else is optional and clearly marked as such.
    ============================================================ */
 
-const EXAMPLES = [
-  {
-    label: "Sewerage",
-    ur: "سیوریج",
-    text: "Gulberg mein sewerage ka pani teen din se sarak pe khara hai, bohat badbo hai aur bachay wahin khelte hain. Koi sunwai nahi ho rahi.",
-  },
-  {
-    label: "Electricity",
-    ur: "بجلی",
-    text: "The transformer outside our lane is sparking and a cable is hanging low over the footpath children use for school.",
-  },
-  {
-    label: "Street lights",
-    ur: "اسٹریٹ لائٹ",
-    text: "پوری گلی کی اسٹریٹ لائٹس دو ہفتے سے بند ہیں، رات کو باہر نکلنا خطرناک ہو گیا ہے۔",
-  },
-];
+/* Sample reports in the reader's own language. Nothing here is
+   translated from English — each is how a person would actually
+   phrase it in that language. */
+const EXAMPLES: Record<Locale, { key: "exSewerage" | "exElectricity" | "exStreetLights"; text: string }[]> = {
+  en: [
+    {
+      key: "exSewerage",
+      text: "Sewage has been standing on our street for three days. The smell is unbearable and children still play in it.",
+    },
+    {
+      key: "exElectricity",
+      text: "The transformer outside our lane is sparking and a cable is hanging low over the footpath children use for school.",
+    },
+    {
+      key: "exStreetLights",
+      text: "None of the street lights on our block have worked for two weeks. It is completely dark and unsafe at night.",
+    },
+  ],
+  ur: [
+    {
+      key: "exSewerage",
+      text: "ہماری گلی میں تین دن سے سیوریج کا پانی کھڑا ہے۔ بدبو ناقابلِ برداشت ہے اور بچے وہیں کھیلتے رہتے ہیں۔",
+    },
+    {
+      key: "exElectricity",
+      text: "ہماری گلی کے باہر ٹرانسفارمر سے چنگاریاں نکل رہی ہیں اور ایک تار نیچے لٹک رہی ہے، جہاں سے بچے اسکول جاتے ہیں۔",
+    },
+    {
+      key: "exStreetLights",
+      text: "ہمارے بلاک کی تمام اسٹریٹ لائٹس دو ہفتے سے بند ہیں۔ رات کو مکمل اندھیرا اور خطرہ رہتا ہے۔",
+    },
+  ],
+  zh: [
+    {
+      key: "exSewerage",
+      text: "我们这条街的污水已经积了三天，气味难以忍受，孩子们还在里面玩。",
+    },
+    {
+      key: "exElectricity",
+      text: "巷口的变压器一直在冒火花，还有一根电缆低垂在孩子们上学要走的人行道上方。",
+    },
+    {
+      key: "exStreetLights",
+      text: "我们这一片的路灯已经两周都不亮了，晚上一片漆黑，很不安全。",
+    },
+  ],
+};
 
 type Mode = "voice" | "write";
 type Phase = "idle" | "running" | "done" | "error";
 
 export default function IntakeConsole() {
+  const { t, locale } = useI18n();
   const [mode, setMode] = useState<Mode | null>(null);
   const [text, setText] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -60,7 +92,6 @@ export default function IntakeConsole() {
   const [photos, setPhotos] = useState<string[]>([]);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
-  const [voiceLang, setVoiceLang] = useState<"ur-PK" | "en-US">("ur-PK");
 
   const fileRef = useRef<HTMLInputElement>(null);
   const hood = coords ? nearestNeighbourhood(coords.lat, coords.lng) : null;
@@ -112,12 +143,13 @@ export default function IntakeConsole() {
           lng: coords?.lng ?? null,
           intakeMode,
           photoCount: photos.length,
+          locale,
         }),
       });
 
       if (!res.ok || !res.body) {
         const j = await res.json().catch(() => null);
-        throw new Error(j?.error ?? "We couldn't reach the service. Please try again.");
+        throw new Error(j?.error ?? t.intake.failed);
       }
 
       const reader = res.body.getReader();
@@ -134,7 +166,7 @@ export default function IntakeConsole() {
           if (!line.trim()) continue;
           const evt = JSON.parse(line) as StageEvent;
           if (evt.stage === "error") {
-            setError(evt.message ?? "Filing failed.");
+            setError(evt.message ?? t.intake.generic);
             setPhase("error");
             return;
           }
@@ -143,7 +175,7 @@ export default function IntakeConsole() {
         }
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(e instanceof Error ? e.message : t.intake.generic);
       setPhase("error");
     }
   };
@@ -179,6 +211,8 @@ export default function IntakeConsole() {
     );
   }
 
+  const textIsUrdu = /[؀-ۿ]/.test(text);
+
   return (
     <div className="border-rule bg-paper-raised w-full border">
       {/* ── panel header ── */}
@@ -187,242 +221,197 @@ export default function IntakeConsole() {
           {mode && (
             <button
               onClick={() => setMode(null)}
-              className="text-ink-faint hover:text-ink -ml-1 p-1 transition-colors"
-              aria-label="Back"
+              className="text-ink-faint hover:text-ink -ms-1 p-1 transition-colors"
+              aria-label={t.common.back}
             >
-              <ArrowLeft className="size-4" />
+              <ArrowLeft className="size-4 rtl:rotate-180" />
             </button>
           )}
-          <div>
-            <p className="type-action">Report a problem</p>
-            <p className="type-urdu text-ink-faint text-[0.85rem] leading-tight">
-              مسئلہ بتائیں
-            </p>
-          </div>
+          <p className="type-action">{t.intake.panelTitle}</p>
         </div>
         <span className="type-meta text-ink-faint shrink-0">
-          {mode ? "Step 2 of 2" : "Step 1 of 2"}
+          {fmt(t.intake.step, { n: mode ? 2 : 1 })}
         </span>
       </div>
 
-        {/* ══ DOOR 1: how do you want to report? ══════════════ */}
-        {!mode && (
-          <motion.div
-            key="choose"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            className="p-4 sm:p-5"
-          >
-            <p className="type-lead text-center">
-              How would you like to tell us?
-            </p>
-            <p className="type-urdu text-ink-faint mt-1 text-center text-[1rem]">
-              آپ کیسے بتانا چاہیں گے؟
-            </p>
+      {/* ══ DOOR 1: how do you want to report? ══════════════ */}
+      {!mode && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="p-4 sm:p-5"
+        >
+          <p className="type-lead text-center">{t.intake.question}</p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
-              {/* SPEAK */}
-              <button
-                onClick={() => setMode("voice")}
-                className="border-rule-strong hover:border-ink hover:bg-paper-sunk group flex flex-col items-center gap-4 border p-7 transition-colors sm:p-8"
-              >
-                <span className="bg-ink text-paper group-hover:bg-signal grid size-16 place-items-center rounded-full transition-colors">
-                  <Mic className="size-7" strokeWidth={1.5} />
-                </span>
-                <BiLabel en="Speak" ur="بولیں" />
-                <span className="type-body text-ink-muted text-center leading-snug">
-                  Just talk, the way you would to a neighbour
-                </span>
-              </button>
-
-              {/* WRITE */}
-              <button
-                onClick={() => setMode("write")}
-                className="border-rule-strong hover:border-ink hover:bg-paper-sunk group flex flex-col items-center gap-4 border p-7 transition-colors sm:p-8"
-              >
-                <span className="border-ink text-ink group-hover:bg-ink group-hover:text-paper grid size-16 place-items-center rounded-full border transition-colors">
-                  <PenLine className="size-7" strokeWidth={1.5} />
-                </span>
-                <BiLabel en="Write" ur="لکھیں" />
-                <span className="type-body text-ink-muted text-center leading-snug">
-                  Type it out in Urdu, English, or both
-                </span>
-              </button>
-            </div>
-
-            <p className="type-meta text-ink-faint mt-6 text-center">
-              No account needed · Takes about a minute
-            </p>
-          </motion.div>
-        )}
-
-        {/* ══ DOOR 2A: speaking ═══════════════════════════════ */}
-        {mode === "voice" && (
-          <motion.div
-            key="voice"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-          >
-            <VoiceCapture
-              value={text}
-              onChange={setText}
-              lang={voiceLang}
-              onLangChange={setVoiceLang}
-              onDone={() => setMode("write")}
-            />
-          </motion.div>
-        )}
-
-        {/* ══ DOOR 2B: writing (also the review step after voice) ══ */}
-        {mode === "write" && (
-          <motion.div
-            key="write"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            className="p-4 sm:p-5"
-          >
-            <label className="block">
-              <span className="type-action">What is the problem?</span>
-              <span className="type-urdu text-ink-faint mt-0.5 block text-[0.9rem]">
-                مسئلہ کیا ہے؟
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <button
+              onClick={() => setMode("voice")}
+              className="border-rule-strong hover:border-ink hover:bg-paper-sunk group flex flex-col items-center gap-4 border p-7 transition-colors sm:p-8"
+            >
+              <span className="bg-ink text-paper group-hover:bg-signal grid size-16 place-items-center rounded-full transition-colors">
+                <Mic className="size-7" strokeWidth={1.5} />
               </span>
-              <textarea
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                rows={6}
-                autoFocus
-                placeholder="For example: our street has had no water for three days and the children are getting sick."
-                className={cn(
-                  "border-rule focus:border-ink placeholder:text-ink-faint/70 mt-3 w-full resize-none border bg-transparent p-3.5 outline-none transition-colors",
-                  /[؀-ۿ]/.test(text) ? "type-urdu text-right text-[1.05rem]" : "type-body",
-                )}
-              />
-            </label>
+              <span className="type-action-lg">{t.intake.speak}</span>
+              <span className="type-body text-ink-muted text-center leading-snug">
+                {t.intake.speakDesc}
+              </span>
+            </button>
 
-            {/* examples */}
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="type-meta text-ink-faint">Try an example:</span>
-              {EXAMPLES.map((ex) => (
-                <button
-                  key={ex.label}
-                  onClick={() => setText(ex.text)}
-                  className="border-rule text-ink-muted hover:border-ink hover:text-ink flex items-center gap-1.5 border px-2.5 py-1.5 transition-colors"
-                >
-                  <span className="type-meta">{ex.label}</span>
-                  <span className="type-urdu-inline text-[0.8rem] opacity-60">{ex.ur}</span>
-                </button>
-              ))}
-            </div>
+            <button
+              onClick={() => setMode("write")}
+              className="border-rule-strong hover:border-ink hover:bg-paper-sunk group flex flex-col items-center gap-4 border p-7 transition-colors sm:p-8"
+            >
+              <span className="border-ink text-ink group-hover:bg-ink group-hover:text-paper grid size-16 place-items-center rounded-full border transition-colors">
+                <PenLine className="size-7" strokeWidth={1.5} />
+              </span>
+              <span className="type-action-lg">{t.intake.write}</span>
+              <span className="type-body text-ink-muted text-center leading-snug">
+                {t.intake.writeDesc}
+              </span>
+            </button>
+          </div>
 
-            {/* photos */}
-            {photos.length > 0 && (
-              <ul className="mt-4 flex gap-2">
-                {photos.map((src, i) => (
-                  <li key={i} className="border-rule relative size-20 border">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="" className="size-full object-cover" />
-                    <button
-                      onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}
-                      className="bg-ink text-paper absolute -top-2 -right-2 grid size-5 place-items-center"
-                      aria-label="Remove photo"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <p className="type-meta text-ink-faint mt-6 text-center">
+            {t.intake.noAccount}
+          </p>
+        </motion.div>
+      )}
 
-            {/* optional extras — clearly marked optional */}
-            <div className="rule-t mt-5 pt-5">
-              <p className="type-meta text-ink-faint mb-3">
-                Optional — these help us send it to the right office
-              </p>
+      {/* ══ DOOR 2A: speaking ═══════════════════════════════ */}
+      {mode === "voice" && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+          <VoiceCapture value={text} onChange={setText} onDone={() => setMode("write")} />
+        </motion.div>
+      )}
 
-              <div className="flex flex-wrap gap-2.5">
-                <Button
-                  variant="outline"
-                  urdu="تصویر"
-                  onClick={() => fileRef.current?.click()}
-                >
-                  <Camera className="mr-2 size-4" />
-                  Add photo
-                </Button>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  hidden
-                  onChange={(e) => onPhotos(e.target.files)}
-                />
-
-                <Button
-                  variant={hood ? "primary" : "outline"}
-                  urdu={hood ? undefined : "مقام"}
-                  onClick={locate}
-                >
-                  {locating ? (
-                    <Loader2 className="mr-2 size-4 animate-spin" />
-                  ) : hood ? (
-                    <Check className="mr-2 size-4" />
-                  ) : (
-                    <MapPin className="mr-2 size-4" />
-                  )}
-                  {hood ? hood.name : "Use my location"}
-                </Button>
-              </div>
-
-              {!hood && (
-                <div className="mt-3 flex flex-wrap items-center gap-2.5">
-                  <span className="type-body text-ink-faint">or choose your area</span>
-                  <select
-                    onChange={(e) => {
-                      const n = NEIGHBOURHOODS.find((x) => x.name === e.target.value);
-                      if (n) setCoords({ lat: n.lat, lng: n.lng });
-                    }}
-                    defaultValue=""
-                    className="type-body border-rule focus:border-ink h-11 border bg-transparent px-3 outline-none transition-colors"
-                  >
-                    <option value="" disabled>
-                      Select your area…
-                    </option>
-                    {NEIGHBOURHOODS.map((n) => (
-                      <option key={n.name} value={n.name}>
-                        {n.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+      {/* ══ DOOR 2B: writing, and the review step after voice ══ */}
+      {mode === "write" && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="p-4 sm:p-5"
+        >
+          <label className="block">
+            <span className="type-action">{t.intake.problemLabel}</span>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={6}
+              autoFocus
+              placeholder={t.intake.placeholder}
+              dir={textIsUrdu ? "rtl" : undefined}
+              className={cn(
+                "type-body border-rule focus:border-ink placeholder:text-ink-faint/70 mt-3 w-full resize-none border bg-transparent p-3.5 outline-none transition-colors",
               )}
-            </div>
+              style={
+                textIsUrdu && locale !== "ur"
+                  ? { fontFamily: "var(--font-nastaliq)", lineHeight: 2.1 }
+                  : undefined
+              }
+            />
+          </label>
 
-            {error && <p className="type-body text-p1 mt-4">{error}</p>}
-
-            {/* the one action that matters */}
-            <div className="rule-t mt-5 flex flex-col gap-3 pt-5 sm:flex-row sm:items-center">
-              <Button
-                size="xl"
-                urdu="شکایت بھیجیں"
-                onClick={submit}
-                disabled={!ready}
-                className="w-full sm:w-auto"
+          {/* examples */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="type-meta text-ink-faint">{t.intake.tryExample}</span>
+            {EXAMPLES[locale].map((ex) => (
+              <button
+                key={ex.key}
+                onClick={() => setText(ex.text)}
+                className="type-body border-rule text-ink-muted hover:border-ink hover:text-ink border px-2.5 py-1.5 text-[0.8rem] transition-colors"
               >
-                Send complaint
-                <ArrowRight className="ml-1 size-4" />
-              </Button>
+                {t.intake[ex.key]}
+              </button>
+            ))}
+          </div>
 
-              {!ready && (
-                <p className="type-body text-ink-faint">
-                  Tell us a little more first
-                </p>
-              )}
+          {/* photos */}
+          {photos.length > 0 && (
+            <ul className="mt-4 flex gap-2">
+              {photos.map((src, i) => (
+                <li key={i} className="border-rule relative size-20 border">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt="" className="size-full object-cover" />
+                  <button
+                    onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}
+                    className="bg-ink text-paper absolute -top-2 -end-2 grid size-5 place-items-center"
+                    aria-label={t.common.remove}
+                  >
+                    <X className="size-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* optional extras — clearly marked optional */}
+          <div className="rule-t mt-5 pt-5">
+            <p className="type-meta text-ink-faint mb-3">{t.intake.optionalHint}</p>
+
+            <div className="flex flex-wrap gap-2.5">
+              <Button variant="outline" onClick={() => fileRef.current?.click()}>
+                <Camera className="me-2 size-4" />
+                {t.intake.addPhoto}
+              </Button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={(e) => onPhotos(e.target.files)}
+              />
+
+              <Button variant={hood ? "primary" : "outline"} onClick={locate}>
+                {locating ? (
+                  <Loader2 className="me-2 size-4 animate-spin" />
+                ) : hood ? (
+                  <Check className="me-2 size-4" />
+                ) : (
+                  <MapPin className="me-2 size-4" />
+                )}
+                {hood ? hood.name : t.intake.useLocation}
+              </Button>
             </div>
-          </motion.div>
-        )}
+
+            {!hood && (
+              <div className="mt-3 flex flex-wrap items-center gap-2.5">
+                <span className="type-body text-ink-faint">{t.intake.orChooseArea}</span>
+                <select
+                  onChange={(e) => {
+                    const n = NEIGHBOURHOODS.find((x) => x.name === e.target.value);
+                    if (n) setCoords({ lat: n.lat, lng: n.lng });
+                  }}
+                  defaultValue=""
+                  className="type-body border-rule focus:border-ink h-11 border bg-transparent px-3 outline-none transition-colors"
+                >
+                  <option value="" disabled>
+                    {t.intake.selectArea}
+                  </option>
+                  {NEIGHBOURHOODS.map((n) => (
+                    <option key={n.name} value={n.name}>
+                      {n.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {error && <p className="type-body text-p1 mt-4">{error}</p>}
+
+          {/* the one action that matters */}
+          <div className="rule-t mt-5 flex flex-col gap-3 pt-5 sm:flex-row sm:items-center">
+            <Button size="xl" onClick={submit} disabled={!ready} className="w-full sm:w-auto">
+              {t.intake.send}
+              <ArrowRight className="ms-1 size-4 rtl:rotate-180" />
+            </Button>
+            {!ready && <p className="type-body text-ink-faint">{t.intake.tellMore}</p>}
+          </div>
+        </motion.div>
+      )}
     </div>
   );
 }

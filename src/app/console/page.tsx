@@ -1,5 +1,7 @@
 import { AlertTriangle, Layers, Search } from "lucide-react";
 import Link from "next/link";
+import { fmt } from "@/lib/i18n";
+import { getI18n } from "@/lib/i18n/server";
 import { DEPARTMENTS, PRIORITY_META } from "@/lib/taxonomy";
 import { getStats, listComplaints } from "@/lib/store";
 import type { Complaint, DepartmentId, Priority } from "@/lib/types";
@@ -35,6 +37,7 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
   const view = typeof sp.view === "string" ? sp.view : "open";
   const q = typeof sp.q === "string" ? sp.q : "";
 
+  const { t } = await getI18n();
   const [stats, pool] = await Promise.all([
     getStats(),
     listComplaints({ department: dept, search: q, parentsOnly: true, limit: 400 }),
@@ -91,11 +94,13 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
         >
           <AlertTriangle className="text-p1 size-4 shrink-0" />
           <p className="type-action text-console-ink">
-            {criticalLate.length} critical{" "}
-            {criticalLate.length === 1 ? "case is" : "cases are"} past deadline
+            {criticalLate.length === 1
+              ? t.console.criticalLateOne
+              : fmt(t.console.criticalLate, { n: criticalLate.length })}
           </p>
           <span className="type-meta text-console-muted ml-auto hidden truncate sm:block">
-            Oldest: {criticalLate[0].title} · {criticalLate[0].neighbourhood}
+            {t.console.oldest}: {t.category[criticalLate[0].category]} ·{" "}
+            {criticalLate[0].neighbourhood}
           </span>
         </Link>
       )}
@@ -103,11 +108,34 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
       {/* ── metrics ── */}
       <section className="border-console-rule grid grid-cols-2 gap-px border sm:grid-cols-5">
         {[
-          { label: "Open cases", value: stats.open, sub: `${stats.last24h} arrived today` },
-          { label: "Critical", value: stats.critical, sub: "P1 awaiting action", tone: "critical" },
-          { label: "Past deadline", value: stats.overdue, sub: "service standard missed", tone: "critical" },
-          { label: "Resolved", value: `${stats.resolvedPct}%`, sub: `${stats.resolved} cases closed`, tone: "good" },
-          { label: "Median close", value: `${stats.medianHours}h`, sub: "from report to fix" },
+          {
+            label: t.console.openCases,
+            value: stats.open,
+            sub: fmt(t.console.arrivedToday, { n: stats.last24h }),
+          },
+          {
+            label: t.console.critical,
+            value: stats.critical,
+            sub: t.console.awaitingAction,
+            tone: "critical",
+          },
+          {
+            label: t.console.pastDeadline,
+            value: stats.overdue,
+            sub: t.console.slaMissed,
+            tone: "critical",
+          },
+          {
+            label: t.console.resolved,
+            value: `${stats.resolvedPct}%`,
+            sub: fmt(t.console.casesClosed, { n: stats.resolved }),
+            tone: "good",
+          },
+          {
+            label: t.console.medianClose,
+            value: `${stats.medianHours}h`,
+            sub: t.console.reportToFix,
+          },
         ].map((m) => (
           <div key={m.label} className="bg-console-raised px-4 py-4">
             <div className="type-eyebrow text-console-faint">{m.label}</div>
@@ -134,26 +162,26 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <nav className="flex items-stretch">
               {[
-                { id: "open", label: "Open", n: counts.open },
-                { id: "overdue", label: "Past deadline", n: counts.overdue },
-                { id: "all", label: "All cases", n: counts.all },
-              ].map((t) => (
+                { id: "open", label: t.console.tabOpen, n: counts.open },
+                { id: "overdue", label: t.console.tabOverdue, n: counts.overdue },
+                { id: "all", label: t.console.tabAll, n: counts.all },
+              ].map((tab) => (
                 <Link
-                  key={t.id}
-                  href={keep({ view: t.id === "open" ? "" : t.id })}
+                  key={tab.id}
+                  href={keep({ view: tab.id === "open" ? "" : tab.id })}
                   className={`flex h-11 items-center gap-2 border px-4 transition-colors ${
-                    view === t.id
+                    view === tab.id
                       ? "border-console-ink bg-console-raised text-console-ink"
-                      : "border-console-rule text-console-faint hover:text-console-ink -ml-px"
+                      : "border-console-rule text-console-faint hover:text-console-ink -ms-px"
                   }`}
                 >
-                  <span className="type-action">{t.label}</span>
+                  <span className="type-action">{tab.label}</span>
                   <span
                     className={`type-meta tabular-nums ${
-                      t.id === "overdue" && t.n > 0 ? "text-p1" : "opacity-60"
+                      tab.id === "overdue" && tab.n > 0 ? "text-p1" : "opacity-60"
                     }`}
                   >
-                    {t.n}
+                    {tab.n}
                   </span>
                 </Link>
               ))}
@@ -167,7 +195,7 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
                 <input
                   name="q"
                   defaultValue={q}
-                  placeholder="Search area, issue, tracking number"
+                  placeholder={t.console.searchPlaceholder}
                   className="type-body placeholder:text-console-faint text-console-ink w-56 bg-transparent outline-none"
                 />
               </div>
@@ -176,10 +204,10 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
 
           {/* column headers — an officer should never guess a column */}
           <div className="border-console-rule text-console-faint hidden grid-cols-[5.5rem_1fr_9rem_7rem] gap-x-4 border border-b-0 px-4 py-2.5 sm:grid">
-            <span className="type-eyebrow">Priority</span>
-            <span className="type-eyebrow">Case</span>
-            <span className="type-eyebrow">Authority</span>
-            <span className="type-eyebrow text-right">Time left</span>
+            <span className="type-eyebrow">{t.console.colPriority}</span>
+            <span className="type-eyebrow">{t.console.colCase}</span>
+            <span className="type-eyebrow">{t.console.colAuthority}</span>
+            <span className="type-eyebrow text-right">{t.console.colTimeLeft}</span>
           </div>
 
           <ul className="border-console-rule border">
@@ -198,7 +226,7 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
                       {c.duplicate_count > 0 && (
                         <span
                           className="text-signal type-meta inline-flex items-center gap-1"
-                          title={`${c.duplicate_count} people reported this`}
+                          title={fmt(t.map.corroborating, { n: c.duplicate_count })}
                         >
                           <Layers className="size-3" />
                           {c.duplicate_count}
@@ -207,10 +235,11 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
                     </div>
 
                     <div className="min-w-0">
-                      <div className="type-action truncate">{c.title}</div>
+                      <div className="type-action truncate">{t.category[c.category]}</div>
                       <div className="type-meta text-console-faint mt-1 truncate">
-                        {c.neighbourhood} · reported {shortAgo(c.created_at)} ago ·{" "}
-                        {c.tracking_id}
+                        {c.neighbourhood} ·{" "}
+                        {fmt(t.console.reportedAgo, { t: shortAgo(c.created_at) })} ·{" "}
+                        <span dir="ltr">{c.tracking_id}</span>
                       </div>
                     </div>
 
@@ -220,11 +249,11 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
 
                     <div className="sm:text-right">
                       {c.status === "resolved" ? (
-                        <span className="type-meta text-resolved">Closed</span>
+                        <span className="type-meta text-resolved">{t.console.closed}</span>
                       ) : overdue ? (
                         <span className="type-action text-p1 inline-flex items-center gap-1.5 tabular-nums">
                           <AlertTriangle className="size-3.5" />
-                          {slaCountdown(c.due_at).replace("OVERDUE ", "")} late
+                          {slaCountdown(c.due_at).replace("OVERDUE ", "")} {t.console.late}
                         </span>
                       ) : (
                         <span className="type-body text-console-muted tabular-nums">
@@ -241,10 +270,10 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
           {rows.length === 0 && (
             <p className="type-body text-console-faint border-console-rule border border-t-0 px-4 py-12 text-center">
               {q
-                ? `Nothing matches “${q}”.`
+                ? fmt(t.console.noMatch, { q })
                 : view === "overdue"
-                  ? "Nothing is past deadline. Good."
-                  : "Queue clear."}
+                  ? t.console.nothingOverdue
+                  : t.console.queueClear}
             </p>
           )}
         </section>
@@ -252,7 +281,7 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
         {/* ── right rail ── */}
         <aside className="space-y-7">
           <section>
-            <h2 className="type-eyebrow text-console-faint mb-3">Load by authority</h2>
+            <h2 className="type-eyebrow text-console-faint mb-3">{t.console.loadByAuthority}</h2>
             <ul className="space-y-2.5">
               {stats.byDepartment.map((d) => (
                 <li key={d.id}>
@@ -283,13 +312,13 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
                 href={keep({ dept: "" })}
                 className="type-body text-console-faint hover:text-console-ink mt-3 inline-block transition-colors"
               >
-                ← Show all authorities
+                ← {t.console.showAllAuthorities}
               </Link>
             )}
           </section>
 
           <section>
-            <h2 className="type-eyebrow text-console-faint mb-3">What the codes mean</h2>
+            <h2 className="type-eyebrow text-console-faint mb-3">{t.console.whatCodesMean}</h2>
             <ul className="space-y-2.5">
               {(["P1", "P2", "P3", "P4"] as Priority[]).map((p) => (
                 <li key={p} className="flex items-start gap-3">
@@ -297,7 +326,7 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-2">
                       <span className="type-body text-console-muted">
-                        {PRIORITY_META[p].label}
+                        {t.priority[p].label}
                       </span>
                       <span className="type-meta text-console-faint tabular-nums">
                         {stats.byPriority[p]}
@@ -320,12 +349,10 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
           <section className="border-console-rule border p-4">
             <h2 className="type-eyebrow text-console-faint mb-2">
               <Layers className="mr-1.5 inline size-3" />
-              Merged reports
+              {t.console.mergedReports}
             </h2>
             <p className="type-body text-console-muted leading-relaxed">
-              Reports matching an existing case by wording, category, and location
-              within 300 m are merged rather than queued twice. The number beside a
-              case is how many citizens are behind it.
+              {t.console.mergedExplain}
             </p>
           </section>
         </aside>

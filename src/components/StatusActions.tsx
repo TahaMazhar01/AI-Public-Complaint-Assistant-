@@ -4,6 +4,7 @@ import { Check, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition, useState } from "react";
 import { changeStatus } from "@/app/console/actions";
+import { useI18n } from "./LocaleProvider";
 import type { ComplaintStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -11,10 +12,10 @@ import { cn } from "@/lib/utils";
    Every press writes an event the citizen can read on their
    tracking page seconds later — that round trip is the demo. */
 
-const STEPS: { id: ComplaintStatus; label: string }[] = [
-  { id: "acknowledged", label: "Acknowledge" },
-  { id: "in_progress", label: "Dispatch team" },
-  { id: "resolved", label: "Mark resolved" },
+const STEPS: { id: ComplaintStatus; key: "acknowledge" | "dispatchTeam" | "markResolved" }[] = [
+  { id: "acknowledged", key: "acknowledge" },
+  { id: "in_progress", key: "dispatchTeam" },
+  { id: "resolved", key: "markResolved" },
 ];
 
 export default function StatusActions({
@@ -24,6 +25,7 @@ export default function StatusActions({
   complaintId: string;
   current: ComplaintStatus;
 }) {
+  const { t } = useI18n();
   const [pending, startTransition] = useTransition();
   const [busy, setBusy] = useState<ComplaintStatus | null>(null);
   const router = useRouter();
@@ -64,7 +66,7 @@ export default function StatusActions({
             ) : done ? (
               <Check className="size-3.5" />
             ) : null}
-            <span className="type-eyebrow">{s.label}</span>
+            <span className="type-action text-[0.85rem]">{t.console[s.key]}</span>
           </button>
         );
       })}

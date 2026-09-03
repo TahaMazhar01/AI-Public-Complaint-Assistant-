@@ -341,3 +341,117 @@ body {
   0%   { transform: scale(1);    opacity: 0.5; }
   100% { transform: scale(1.85); opacity: 0; }
 }
+
+/* ============================================================
+   LOCALE TYPOGRAPHY
+   Archivo has no Urdu or CJK glyphs, and the tight tracking and
+   0.92 line-height that make English display type work will
+   clip Nastaliq and crowd Chinese. Each script gets its own
+   metrics rather than borrowing the Latin ones.
+   ============================================================ */
+
+html[data-locale="ur"] {
+  --font-display: var(--font-nastaliq), serif;
+  --font-sans: var(--font-nastaliq), serif;
+}
+
+html[data-locale="zh"] {
+  --font-display: var(--font-notosc), sans-serif;
+  --font-sans: var(--font-notosc), sans-serif;
+}
+
+/* Nastaliq descends far below the baseline; it needs room. */
+html[data-locale="ur"] .type-display {
+  line-height: 1.55;
+  letter-spacing: 0;
+  font-variation-settings: "wght" 600;
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+html[data-locale="ur"] .type-h1 {
+  line-height: 1.7;
+  letter-spacing: 0;
+  font-variation-settings: "wght" 600;
+}
+html[data-locale="ur"] .type-h2 {
+  line-height: 1.8;
+  letter-spacing: 0;
+  font-variation-settings: "wght" 600;
+}
+html[data-locale="ur"] .type-h3 {
+  line-height: 1.9;
+  letter-spacing: 0;
+  font-variation-settings: "wght" 600;
+}
+html[data-locale="ur"] .type-body,
+html[data-locale="ur"] .type-lead {
+  line-height: 2.1;
+  font-variation-settings: "wght" 400;
+}
+html[data-locale="ur"] .type-action,
+html[data-locale="ur"] .type-action-lg {
+  line-height: 1.9;
+  letter-spacing: 0;
+  font-variation-settings: "wght" 600;
+}
+html[data-locale="ur"] .type-numeral {
+  font-family: var(--font-archivo), sans-serif;
+  font-variation-settings: "wdth" 122, "wght" 640;
+}
+/* Eyebrows stay in the mono face: they carry IDs, codes and counts,
+   which must remain unambiguous in every locale. */
+html[data-locale="ur"] .type-eyebrow {
+  letter-spacing: 0.08em;
+}
+
+/* CJK never wants negative tracking, and 0.92 line-height is unreadable. */
+html[data-locale="zh"] .type-display {
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variation-settings: "wght" 700;
+}
+html[data-locale="zh"] .type-h1,
+html[data-locale="zh"] .type-h2 {
+  line-height: 1.35;
+  letter-spacing: 0;
+  font-variation-settings: "wght" 700;
+}
+html[data-locale="zh"] .type-h3 {
+  line-height: 1.5;
+  letter-spacing: 0;
+  font-variation-settings: "wght" 600;
+}
+html[data-locale="zh"] .type-body,
+html[data-locale="zh"] .type-lead {
+  line-height: 1.8;
+  letter-spacing: 0;
+}
+html[data-locale="zh"] .type-action,
+html[data-locale="zh"] .type-action-lg {
+  letter-spacing: 0;
+  font-variation-settings: "wght" 600;
+}
+html[data-locale="zh"] .type-numeral {
+  font-family: var(--font-archivo), sans-serif;
+  font-variation-settings: "wdth" 122, "wght" 640;
+}
+html[data-locale="zh"] .type-eyebrow {
+  letter-spacing: 0.06em;
+  text-transform: none;
+}
+
+/* Machine data stays LTR even on an RTL page: a tracking number read
+   right-to-left is a different tracking number. */
+[dir="rtl"] .type-meta,
+[dir="rtl"] .font-mono {
+  direction: ltr;
+  unicode-bidi: embed;
+}
+[dir="rtl"] .type-meta {
+  text-align: start;
+}
+
+/* Logical hairlines — flip correctly on RTL pages. */
+@layer components {
+  .rule-s { border-inline-start: 1px solid var(--color-rule); }
+  .rule-e { border-inline-end: 1px solid var(--color-rule); }
+}

@@ -1,5 +1,8 @@
+"use client";
+
 import { Bot, CheckCircle2, Layers, TrendingUp, User, Wrench } from "lucide-react";
 import type { ComplaintEvent } from "@/lib/types";
+import { useI18n } from "./LocaleProvider";
 import { cn } from "@/lib/utils";
 
 /* The case history, rendered from the append-only event log.
@@ -16,13 +19,6 @@ const ICONS = {
   resolved: CheckCircle2,
 } as const;
 
-const ACTOR_LABEL = {
-  citizen: "Citizen",
-  awaaz_ai: "Awaaz",
-  officer: "Department",
-  system: "System",
-} as const;
-
 export default function Timeline({
   events,
   dark = false,
@@ -30,6 +26,7 @@ export default function Timeline({
   events: ComplaintEvent[];
   dark?: boolean;
 }) {
+  const { t } = useI18n();
   return (
     <ol className="relative">
       <span
@@ -72,7 +69,7 @@ export default function Timeline({
                   )}
                 >
                   <Icon className="size-3" />
-                  {ACTOR_LABEL[e.actor]}
+                  {t.actor[e.actor]}
                 </span>
                 <span
                   className={cn(

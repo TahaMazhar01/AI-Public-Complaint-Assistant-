@@ -1,11 +1,14 @@
-import { HAZARD_LABELS, PRIORITY_META } from "@/lib/taxonomy";
+"use client";
+
 import type { ComplaintStatus, HazardFlag, Priority } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useI18n } from "./LocaleProvider";
 
 /* ============================================================
    SHARED PRIMITIVES
    Colour here always encodes meaning. Nothing in this file is
    decorative — if you want a colour for looks, use ink.
+   Every label comes from the active dictionary; none is hard-coded.
    ============================================================ */
 
 const PRIORITY_STYLES: Record<Priority, string> = {
@@ -24,6 +27,7 @@ export function PriorityBadge({
   withLabel?: boolean;
   className?: string;
 }) {
+  const { t } = useI18n();
   return (
     <span
       className={cn(
@@ -33,8 +37,8 @@ export function PriorityBadge({
       )}
     >
       <span className="block size-1.5 rounded-full bg-current" />
-      {priority}
-      {withLabel && <span className="opacity-70">{PRIORITY_META[priority].label}</span>}
+      <span dir="ltr">{priority}</span>
+      {withLabel && <span className="opacity-70">{t.priority[priority].label}</span>}
     </span>
   );
 }
@@ -48,15 +52,6 @@ const STATUS_STYLES: Record<ComplaintStatus, string> = {
   rejected: "text-ink-faint",
 };
 
-const STATUS_LABELS: Record<ComplaintStatus, string> = {
-  submitted: "Submitted",
-  routed: "Routed",
-  acknowledged: "Acknowledged",
-  in_progress: "In progress",
-  resolved: "Resolved",
-  rejected: "Closed",
-};
-
 export function StatusPill({
   status,
   className,
@@ -64,6 +59,7 @@ export function StatusPill({
   status: ComplaintStatus;
   className?: string;
 }) {
+  const { t } = useI18n();
   return (
     <span
       className={cn(
@@ -78,7 +74,7 @@ export function StatusPill({
           (status === "in_progress" || status === "routed") && "pulse-dot",
         )}
       />
-      {STATUS_LABELS[status]}
+      {t.status[status]}
     </span>
   );
 }
@@ -94,6 +90,7 @@ export function HazardChips({
   className?: string;
   dark?: boolean;
 }) {
+  const { t } = useI18n();
   if (!hazards.length) return null;
   return (
     <ul className={cn("flex flex-wrap gap-1.5", className)}>
@@ -107,10 +104,59 @@ export function HazardChips({
               : "border-rule-strong text-ink-muted",
           )}
         >
-          {HAZARD_LABELS[h] ?? h}
+          {t.hazard[h]}
         </li>
       ))}
     </ul>
+  );
+}
+
+/* ============================================================
+   ACTIONS
+   Sized for a thumb. Labelled in exactly one language — the one
+   the reader chose.
+   ============================================================ */
+
+type ButtonVariant = "primary" | "outline" | "quiet" | "danger";
+type ButtonSize = "md" | "lg" | "xl";
+
+const VARIANTS: Record<ButtonVariant, string> = {
+  primary: "bg-ink text-paper hover:bg-signal border border-ink hover:border-signal",
+  outline: "border border-rule-strong text-ink hover:border-ink hover:bg-paper-sunk",
+  quiet: "border border-transparent text-ink-muted hover:text-ink hover:bg-paper-sunk",
+  danger: "border border-p1 text-p1 hover:bg-p1 hover:text-paper",
+};
+
+const SIZES: Record<ButtonSize, string> = {
+  md: "h-11 px-4 gap-2",
+  lg: "h-14 px-5 gap-2.5",
+  xl: "h-16 px-6 gap-3",
+};
+
+export function Button({
+  variant = "primary",
+  size = "md",
+  className,
+  children,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+}) {
+  return (
+    <button
+      className={cn(
+        "inline-flex items-center justify-center transition-colors",
+        "disabled:cursor-not-allowed disabled:opacity-35",
+        size === "xl" ? "type-action-lg" : "type-action",
+        VARIANTS[variant],
+        SIZES[size],
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -142,100 +188,5 @@ export function Metric({
       </div>
       {sub && <div className="type-meta text-ink-faint mt-1.5">{sub}</div>}
     </div>
-  );
-}
-
-/* ============================================================
-   ACTIONS
-   Sized for a thumb, labelled in both languages. A citizen who
-   reads only Urdu should be able to complete the whole flow.
-   ============================================================ */
-
-type ButtonVariant = "primary" | "outline" | "quiet" | "danger";
-type ButtonSize = "md" | "lg" | "xl";
-
-const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-ink text-paper hover:bg-signal border border-ink hover:border-signal",
-  outline: "border border-rule-strong text-ink hover:border-ink hover:bg-paper-sunk",
-  quiet: "border border-transparent text-ink-muted hover:text-ink hover:bg-paper-sunk",
-  danger: "border border-p1 text-p1 hover:bg-p1 hover:text-paper",
-};
-
-const SIZES: Record<ButtonSize, string> = {
-  md: "h-11 px-4 gap-2",
-  lg: "h-14 px-5 gap-2.5",
-  xl: "h-16 px-6 gap-3",
-};
-
-export function Button({
-  variant = "primary",
-  size = "md",
-  urdu,
-  className,
-  children,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  /** Urdu rendered beside the English label, not instead of it. */
-  urdu?: string;
-}) {
-  return (
-    <button
-      className={cn(
-        "inline-flex items-center justify-center transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-35",
-        VARIANTS[variant],
-        SIZES[size],
-        className,
-      )}
-      {...props}
-    >
-      <span className={size === "xl" ? "type-action-lg" : "type-action"}>{children}</span>
-      {urdu && (
-        <span
-          className={cn(
-            "type-urdu-inline opacity-60",
-            size === "xl" ? "text-[1.05rem]" : "text-[0.9rem]",
-          )}
-        >
-          {urdu}
-        </span>
-      )}
-    </button>
-  );
-}
-
-/** English over Urdu, stacked. For headings and big choices. */
-export function BiLabel({
-  en,
-  ur,
-  className,
-  size = "md",
-}: {
-  en: string;
-  ur: string;
-  className?: string;
-  size?: "sm" | "md" | "lg";
-}) {
-  return (
-    <span className={cn("flex flex-col items-center gap-1.5", className)}>
-      <span
-        className={
-          size === "lg" ? "type-h2" : size === "md" ? "type-action-lg" : "type-action"
-        }
-      >
-        {en}
-      </span>
-      <span
-        className={cn(
-          "type-urdu text-ink-muted",
-          size === "lg" ? "text-[1.15rem]" : size === "md" ? "text-[0.95rem]" : "text-[0.8rem]",
-        )}
-        style={{ lineHeight: 1.9 }}
-      >
-        {ur}
-      </span>
-    </span>
   );
 }

@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { CITY } from "@/lib/taxonomy";
 import ConsoleClock from "@/components/ConsoleClock";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { getI18n } from "@/lib/i18n/server";
 
 /* The authority surface. Deliberately inverted from the citizen app:
    warm near-black, dense, no marketing. It should feel like a room
    where work gets assigned, not a product page. */
-export default function ConsoleLayout({ children }: LayoutProps<"/console">) {
+export default async function ConsoleLayout({ children }: LayoutProps<"/console">) {
+  const { t } = await getI18n();
   return (
     <div className="bg-console text-console-ink flex min-h-full flex-col">
       <header className="border-console-rule bg-console/90 sticky top-0 z-40 border-b backdrop-blur-sm">
@@ -18,24 +20,25 @@ export default function ConsoleLayout({ children }: LayoutProps<"/console">) {
             >
               AWAAZ
             </Link>
-            <span className="type-eyebrow text-console-faint">Authority console</span>
+            <span className="type-eyebrow text-console-faint">{t.console.title}</span>
           </div>
 
           <div className="flex items-center gap-5">
             <span className="type-meta text-console-muted hidden sm:inline">
-              {CITY.name} · District Operations
+              {t.common.city} · {t.console.subtitle}
             </span>
             <span className="type-eyebrow text-resolved flex items-center gap-2">
               <span className="pulse-dot block size-1.5 rounded-full bg-current" />
-              Live
+              {t.common.live}
             </span>
             <ConsoleClock />
             <Link
               href="/"
               className="type-eyebrow text-console-faint hover:text-console-ink transition-colors"
             >
-              Exit
+              {t.common.exit}
             </Link>
+            <LanguageSwitcher dark />
           </div>
         </div>
       </header>
