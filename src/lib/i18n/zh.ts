@@ -193,6 +193,9 @@ export const zh: Dictionary = {
     loadByAuthority: "各部门工作量",
     showAllAuthorities: "显示全部部门",
     whatCodesMean: "代码含义",
+    storage: "存储",
+    storagePostgres: "Postgres · 已持久化",
+    storageMemory: "内存中的演示数据",
     mergedReports: "已合并的报告",
     mergedExplain:
       "若一条报告在措辞、类别以及 300 米范围内的位置上与既有案件相符，系统会将其合并，而不是重复排队。案件旁的数字表示背后有多少市民。",

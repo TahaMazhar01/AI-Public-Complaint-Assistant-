@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed": "tsx scripts/seed-supabase.ts",
+    "check:db": "tsx scripts/check-supabase.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.46",
@@ -37,6 +39,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
     "tailwindcss": "^4",
+    "tsx": "^4.23.13",
     "typescript": "^5"
   },
   "packageManager": "pnpm@11.8.0"

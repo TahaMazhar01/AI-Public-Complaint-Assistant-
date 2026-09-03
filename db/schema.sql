@@ -14,8 +14,10 @@ create extension if not exists pgcrypto;
 -- ------------------------------------------------------------
 create sequence if not exists complaint_seq start 1;
 
+-- VOLATILE, not STABLE: PostgREST runs STABLE functions inside a
+-- read-only transaction, and this one calls nextval().
 create or replace function make_tracking_id(city_code text default 'LHR')
-returns text language sql stable as $$
+returns text language sql volatile as $$
   select 'AWZ-' || city_code || '-'
          || to_char(now(), 'YYMM') || '-'
          || lpad(nextval('complaint_seq')::text, 4, '0');
@@ -195,3 +197,17 @@ create policy complaints_read   on complaints       for select using (true);
 create policy complaints_insert on complaints       for insert with check (true);
 create policy events_read       on complaint_events for select using (true);
 create policy events_insert     on complaint_events for insert with check (true);
+
+-- ------------------------------------------------------------
+-- SEQUENCE BUMP
+-- After loading the demo corpus, push the sequence past the
+-- seeded numbers so newly filed complaints sort after them
+-- rather than restarting at 0001.
+-- ------------------------------------------------------------
+create or replace function bump_complaint_seq(to_value bigint)
+returns bigint language sql as $$
+  select setval(
+    'complaint_seq',
+    greatest(to_value, (select last_value from complaint_seq))
+  );
+$$;

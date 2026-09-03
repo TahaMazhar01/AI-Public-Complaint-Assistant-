@@ -198,6 +198,9 @@ export const en = {
     loadByAuthority: "Load by authority",
     showAllAuthorities: "Show all authorities",
     whatCodesMean: "What the codes mean",
+    storage: "Storage",
+    storagePostgres: "Postgres · persisted",
+    storageMemory: "In-memory demo corpus",
     mergedReports: "Merged reports",
     mergedExplain:
       "Reports matching an existing case by wording, category, and location within 300 m are merged rather than queued twice. The number beside a case is how many citizens are behind it.",

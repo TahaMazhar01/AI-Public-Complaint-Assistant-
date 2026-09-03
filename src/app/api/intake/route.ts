@@ -9,9 +9,8 @@ import {
   resolveSlaHours,
   routeToDepartment,
 } from "@/lib/taxonomy";
-import { findDuplicates, insertComplaint, nextSequence } from "@/lib/store";
+import { findDuplicates, insertComplaint, nextTrackingId } from "@/lib/store";
 import type { Complaint, ComplaintEvent, IntakeMode } from "@/lib/types";
-import { formatTrackingId } from "@/lib/utils";
 
 export const runtime = "nodejs";
 
@@ -157,9 +156,10 @@ export async function POST(req: NextRequest) {
         });
 
         /* 6 — DRAFTED -------------------------------------------------- */
-        const sequence = nextSequence();
         const now = new Date();
-        const trackingId = formatTrackingId(sequence, "LHR", now);
+        // Postgres owns the sequence when it is configured, so the id is
+        // minted before the row is written and carried through unchanged.
+        const trackingId = await nextTrackingId();
 
         const formalText = composeFormalText({
           trackingId,
@@ -179,7 +179,7 @@ export async function POST(req: NextRequest) {
 
         /* 7 — FILED ---------------------------------------------------- */
         const complaint: Complaint = {
-          id: `c-${sequence}`,
+          id: crypto.randomUUID(), // replaced by the database on insert
           tracking_id: trackingId,
           created_at: now.toISOString(),
           updated_at: now.toISOString(),
@@ -236,8 +236,10 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        await insertComplaint(complaint, timeline);
-        await emit("filed", { complaint });
+        // Emit what was actually stored, not the local draft: the database
+        // assigns the real id, and the tracking page is looked up by it.
+        const saved = await insertComplaint(complaint, timeline);
+        await emit("filed", { complaint: saved });
 
         controller.close();
       } catch (err) {

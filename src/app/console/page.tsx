@@ -3,7 +3,7 @@ import Link from "next/link";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { DEPARTMENTS, PRIORITY_META } from "@/lib/taxonomy";
-import { getStats, listComplaints } from "@/lib/store";
+import { activeBackend, getStats, listComplaints } from "@/lib/store";
 import type { Complaint, DepartmentId, Priority } from "@/lib/types";
 import { shortAgo, slaCountdown, slaProgress } from "@/lib/utils";
 
@@ -353,6 +353,14 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
             </h2>
             <p className="type-body text-console-muted leading-relaxed">
               {t.console.mergedExplain}
+            </p>
+            {/* Proof for the pitch: the numbers above came out of a real
+                database, or they did not. Say which. */}
+            <p className="border-console-rule type-meta text-console-faint mt-3 border-t pt-2.5">
+              {t.console.storage} ·{" "}
+              {activeBackend() === "postgres"
+                ? t.console.storagePostgres
+                : t.console.storageMemory}
             </p>
           </section>
         </aside>
