@@ -121,7 +121,8 @@ every string switches at once, including inside server components.
 
 The venue wifi will fail. Plan for it.
 
-- `AI_PROVIDER=mock` removes every outbound AI call.
+- `AI_PROVIDER=mock` removes every outbound AI call — the on-device heuristic
+  handles everything, so the pipeline still runs with no network at all.
 - The seed corpus is deterministic — the same 70 cases on every machine, every run.
 - Six **hotspots** carry real duplicate clusters (Gulberg III sewerage has 12
   reports). This is what makes "8 other people have reported this" true rather

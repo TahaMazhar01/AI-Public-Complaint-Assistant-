@@ -14,6 +14,12 @@ import type { Complaint, ComplaintEvent, IntakeMode } from "@/lib/types";
 
 export const runtime = "nodejs";
 
+/* The pipeline deliberately paces itself (MIN_STAGE_MS below) and then waits
+   on a model call, so a filing takes roughly 5–9 seconds end to end. That is
+   comfortably past the 10s default some Vercel plans apply, and a timeout
+   here would kill the demo's centrepiece. Ask for the headroom explicitly. */
+export const maxDuration = 60;
+
 /* ============================================================
    INTAKE PIPELINE — STREAMED
    Each stage emits the instant it actually finishes. The
