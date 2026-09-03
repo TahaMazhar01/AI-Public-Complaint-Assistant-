@@ -9,7 +9,12 @@ import {
   resolveSlaHours,
   routeToDepartment,
 } from "@/lib/taxonomy";
-import { findDuplicates, insertComplaint, nextTrackingId } from "@/lib/store";
+import {
+  attachToCluster,
+  findDuplicates,
+  insertComplaint,
+  nextTrackingId,
+} from "@/lib/store";
 import type { Complaint, ComplaintEvent, IntakeMode } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -153,6 +158,12 @@ export async function POST(req: NextRequest) {
           ? resolveSlaHours(analysis.category, finalPriority)
           : slaHours;
 
+        // Joining is a write, not a label: the case being matched has its
+        // own corroboration count raised, so the officer queue moves too.
+        const joined = duplicates.length
+          ? await attachToCluster(duplicates[0].complaint_id)
+          : null;
+
         await emit("deduped", {
           matches: duplicates.length,
           nearest: duplicates[0] ?? null,
@@ -213,9 +224,11 @@ export async function POST(req: NextRequest) {
           due_at: new Date(now.getTime() + finalSla * 3600_000).toISOString(),
           resolved_at: null,
           assigned_officer: null,
-          cluster_id: duplicates.length ? duplicates[0].complaint_id : null,
-          is_cluster_parent: duplicates.length === 0,
-          duplicate_count: duplicates.length,
+          cluster_id: joined?.clusterId ?? null,
+          is_cluster_parent: joined === null,
+          // The corroboration count lives on the parent of the cluster,
+          // counted once, rather than on every member of it.
+          duplicate_count: 0,
           citizen_name: body.citizenName ?? null,
           citizen_phone: body.citizenPhone ?? null,
         };

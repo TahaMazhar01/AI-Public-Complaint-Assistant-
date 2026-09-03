@@ -216,6 +216,14 @@ export const ur: Dictionary = {
     mergedList: "شامل شدہ شکایات ({n})",
   },
 
+  live: {
+    newCase: "ابھی نئی شکایت درج ہوئی",
+    newCases: "ابھی {n} نئی شکایات درج ہوئیں",
+    updated: "قطار اپ ڈیٹ ہو گئی",
+    connected: "لائیو",
+    view: "دیکھیں",
+  },
+
   map: {
     title: "لائیو نقشہ",
     open: "{n} زیرِ التوا",

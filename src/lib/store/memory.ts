@@ -182,3 +182,46 @@ export async function getStats(now: Date = new Date()): Promise<Stats> {
 export function seedCorpus() {
   return buildSeed(64);
 }
+
+/* ------------------------------------------------------------
+   CLUSTER JOIN
+   A new report that matches an existing one does not just record
+   a number on itself: it joins that case and the case's own
+   corroboration count goes up. Without this the citizen is told
+   "your report was merged" while the officer's queue never moves,
+   which makes the merge cosmetic.
+   ------------------------------------------------------------ */
+export async function attachToCluster(
+  matchId: string,
+): Promise<{ clusterId: string; parentId: string } | null> {
+  const store = db();
+  const match = store.complaints.find((c) => c.id === matchId);
+  if (!match) return null;
+
+  // The match may already be in a cluster, or may be a standalone case
+  // that is about to become the first parent of one.
+  if (!match.cluster_id) {
+    match.cluster_id = match.id;
+    match.is_cluster_parent = true;
+  }
+  const clusterId = match.cluster_id;
+
+  // A cluster with no parent is malformed and would be invisible in the
+  // queue, which filters to parents. Promote its earliest member, which is
+  // also the semantically right parent: whoever reported it first.
+  let parent = store.complaints.find(
+    (c) => c.cluster_id === clusterId && c.is_cluster_parent,
+  );
+  if (!parent) {
+    const members = store.complaints
+      .filter((c) => c.cluster_id === clusterId)
+      .sort((a, b) => a.created_at.localeCompare(b.created_at));
+    parent = members[0] ?? match;
+    parent.is_cluster_parent = true;
+  }
+
+  parent.duplicate_count += 1;
+  parent.updated_at = new Date().toISOString();
+
+  return { clusterId, parentId: parent.id };
+}

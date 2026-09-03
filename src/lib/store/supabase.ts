@@ -259,3 +259,71 @@ export async function getStats(now: Date = new Date()): Promise<Stats> {
   if (error) throw new Error(`getStats: ${error.message}`);
   return computeStats((data ?? []) as unknown as Complaint[], now);
 }
+
+/* ------------------------------------------------------------
+   CLUSTER JOIN
+   See the note in memory.ts. Three statements rather than one
+   transaction: acceptable here because the worst case is a count
+   that is low by one, and a wrong count is far better than a
+   refused complaint.
+   ------------------------------------------------------------ */
+export async function attachToCluster(
+  matchId: string,
+): Promise<{ clusterId: string; parentId: string } | null> {
+  const db = serverClient();
+
+  const { data: match } = await db
+    .from("complaints")
+    .select("id, cluster_id, is_cluster_parent, duplicate_count")
+    .eq("id", matchId)
+    .maybeSingle();
+  if (!match) return null;
+
+  let clusterId = match.cluster_id as string | null;
+
+  // A standalone case becomes the parent of the cluster it just seeded.
+  if (!clusterId) {
+    clusterId = match.id as string;
+    await db
+      .from("complaints")
+      .update({ cluster_id: clusterId, is_cluster_parent: true })
+      .eq("id", match.id);
+  }
+
+  const { data: parent } = await db
+    .from("complaints")
+    .select("id, duplicate_count")
+    .eq("cluster_id", clusterId)
+    .eq("is_cluster_parent", true)
+    .maybeSingle();
+
+  // A cluster with no parent is malformed and would be invisible in the
+  // queue, which filters to parents. Promote its earliest member, which is
+  // also the semantically right parent: whoever reported it first.
+  let target = parent as { id: string; duplicate_count: number } | null;
+  if (!target) {
+    const { data: earliest } = await db
+      .from("complaints")
+      .select("id, duplicate_count")
+      .eq("cluster_id", clusterId)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    target = (earliest as { id: string; duplicate_count: number } | null) ?? {
+      id: match.id as string,
+      duplicate_count: (match.duplicate_count as number) ?? 0,
+    };
+    await db.from("complaints").update({ is_cluster_parent: true }).eq("id", target.id);
+  }
+
+  await db
+    .from("complaints")
+    .update({
+      duplicate_count: target.duplicate_count + 1,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", target.id);
+
+  return { clusterId, parentId: target.id as string };
+}

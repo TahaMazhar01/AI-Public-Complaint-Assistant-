@@ -214,6 +214,14 @@ export const zh: Dictionary = {
     mergedList: "已合并报告（{n}）",
   },
 
+  live: {
+    newCase: "刚刚有新案件提交",
+    newCases: "刚刚有 {n} 件新案件提交",
+    updated: "队列已更新",
+    connected: "实时",
+    view: "查看",
+  },
+
   map: {
     title: "实时地图",
     open: "{n} 件处理中",

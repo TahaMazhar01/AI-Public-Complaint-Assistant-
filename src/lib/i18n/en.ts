@@ -219,6 +219,14 @@ export const en = {
     mergedList: "Merged reports ({n})",
   },
 
+  live: {
+    newCase: "New case just filed",
+    newCases: "{n} new cases just filed",
+    updated: "Queue updated",
+    connected: "Live",
+    view: "View",
+  },
+
   map: {
     title: "Live map",
     open: "{n} open",

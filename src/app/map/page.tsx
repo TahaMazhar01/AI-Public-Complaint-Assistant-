@@ -2,6 +2,7 @@ import Link from "next/link";
 import LiveMap from "@/components/LiveMap";
 import ConsoleClock from "@/components/ConsoleClock";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import LiveUpdates from "@/components/LiveUpdates";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { getStats, listComplaints } from "@/lib/store";
@@ -35,6 +36,7 @@ export default async function MapPage() {
           <span className="text-p1">{fmt(t.map.critical, { n: stats.critical })}</span>
           <span className="text-p1">{fmt(t.map.overdue, { n: stats.overdue })}</span>
           <span>{t.common.city}</span>
+          <LiveUpdates />
           <ConsoleClock />
         </div>
 

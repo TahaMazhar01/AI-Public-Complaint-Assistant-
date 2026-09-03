@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ConsoleClock from "@/components/ConsoleClock";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import LiveUpdates from "@/components/LiveUpdates";
 import { getI18n } from "@/lib/i18n/server";
 
 /* The authority surface. Deliberately inverted from the citizen app:
@@ -27,10 +28,7 @@ export default async function ConsoleLayout({ children }: LayoutProps<"/console"
             <span className="type-meta text-console-muted hidden sm:inline">
               {t.common.city} · {t.console.subtitle}
             </span>
-            <span className="type-eyebrow text-resolved flex items-center gap-2">
-              <span className="pulse-dot block size-1.5 rounded-full bg-current" />
-              {t.common.live}
-            </span>
+            <LiveUpdates />
             <ConsoleClock />
             <Link
               href="/"

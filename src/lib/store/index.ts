@@ -37,6 +37,9 @@ export const findDuplicates: typeof memory.findDuplicates = (input) =>
 
 export const getStats: typeof memory.getStats = (now) => impl().getStats(now);
 
+export const attachToCluster: typeof memory.attachToCluster = (matchId) =>
+  impl().attachToCluster(matchId);
+
 /** Which backend is actually answering. Surfaced in the console footer
     so a demo can prove the data is persisted, not fabricated. */
 export function activeBackend(): "postgres" | "memory" {
