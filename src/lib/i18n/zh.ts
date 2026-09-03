@@ -200,6 +200,7 @@ export const zh: Dictionary = {
     mergedExplain:
       "若一条报告在措辞、类别以及 300 米范围内的位置上与既有案件相符，系统会将其合并，而不是重复排队。案件旁的数字表示背后有多少市民。",
     dispatchQueue: "派单队列",
+    heading: "部门控制台",
     moveCase: "推进此案件",
     acknowledge: "确认受理",
     dispatchTeam: "派出班组",
@@ -225,6 +226,20 @@ export const zh: Dictionary = {
     corroborating: "{n} 条印证报告",
     loading: "地图加载中…",
     console: "控制台",
+  },
+
+  error: {
+    title: "我们这边出了点问题",
+    body: "问题已被记录。您的投诉是安全的，已提交的内容不会丢失。",
+    retry: "重试",
+    home: "返回首页",
+  },
+
+  notFound: {
+    title: "没有找到这条记录",
+    body: "请核对追踪编号后重试。编号形如 AWZ-LHR-2609-0043，就印在投诉提交时给您的回执上。",
+    search: "在登记簿中搜索",
+    home: "返回首页",
   },
 
   priority: {

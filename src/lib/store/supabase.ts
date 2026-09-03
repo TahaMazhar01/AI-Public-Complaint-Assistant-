@@ -56,6 +56,7 @@ export async function listComplaints(
   if (f.priority && f.priority !== "all") q = q.eq("priority", f.priority);
   if (f.category && f.category !== "all") q = q.eq("category", f.category);
   if (f.parentsOnly) q = q.eq("is_cluster_parent", true);
+  if (f.clusterId) q = q.eq("cluster_id", f.clusterId);
 
   if (f.search?.trim()) {
     // Escape PostgREST's or() delimiters before interpolating user input.

@@ -86,6 +86,9 @@ export default async function Console({ searchParams }: PageProps<"/console">) {
 
   return (
     <main className="mx-auto w-full max-w-[1600px] flex-1 px-5 py-7 sm:px-7">
+      {/* The console is dense and visual; the heading is for anyone
+          arriving by screen reader, who otherwise gets no page title. */}
+      <h1 className="sr-only">{t.console.heading}</h1>
       {/* ── what needs attention right now ── */}
       {criticalLate.length > 0 && (
         <Link

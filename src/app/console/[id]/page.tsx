@@ -7,7 +7,7 @@ import { HazardChips, PriorityBadge, StatusPill } from "@/components/ui";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { detectedLabel } from "@/lib/pipeline";
-import { CATEGORIES, DEPARTMENTS } from "@/lib/taxonomy";
+import { DEPARTMENTS } from "@/lib/taxonomy";
 import { getComplaint, getEvents, listComplaints } from "@/lib/store";
 import { slaCountdown, slaProgress } from "@/lib/utils";
 
@@ -19,13 +19,17 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
   if (!c) notFound();
 
   const { t } = await getI18n();
-  const [events, all] = await Promise.all([getEvents(c.id), listComplaints({ limit: 400 })]);
-  const cluster = c.cluster_id
-    ? all.filter((x) => x.cluster_id === c.cluster_id && x.id !== c.id)
-    : [];
+  const [events, siblings] = await Promise.all([
+    getEvents(c.id),
+    // Only fetch the cluster when there is one. This page used to pull 400
+    // full rows, formal letters included, to find at most a handful.
+    c.cluster_id
+      ? listComplaints({ clusterId: c.cluster_id, limit: 50 })
+      : Promise.resolve([]),
+  ]);
+  const cluster = siblings.filter((x) => x.id !== c.id);
 
   const dept = DEPARTMENTS[c.department_id];
-  const cat = CATEGORIES[c.category];
   const progress = slaProgress(c.created_at, c.due_at);
   const overdue = progress > 1 && c.status !== "resolved";
   const isUrdu = c.detected_language === "ur";

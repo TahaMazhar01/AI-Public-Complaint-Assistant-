@@ -49,6 +49,8 @@ export default async function MapPage() {
         </nav>
       </header>
 
+      <h1 className="sr-only">{t.map.title}</h1>
+
       <div className="min-h-0 flex-1">
         <LiveMap complaints={complaints} />
       </div>

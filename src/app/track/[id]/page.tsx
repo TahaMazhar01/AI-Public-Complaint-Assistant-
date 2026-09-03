@@ -7,7 +7,7 @@ import { HazardChips, PriorityBadge, StatusPill } from "@/components/ui";
 import { fmt } from "@/lib/i18n";
 import { getI18n } from "@/lib/i18n/server";
 import { detectedLabel } from "@/lib/pipeline";
-import { CATEGORIES, DEPARTMENTS } from "@/lib/taxonomy";
+import { DEPARTMENTS } from "@/lib/taxonomy";
 import { getComplaint, getEvents, listComplaints } from "@/lib/store";
 import { slaCountdown, slaProgress } from "@/lib/utils";
 
@@ -22,16 +22,13 @@ export default async function TrackDetail({ params }: PageProps<"/track/[id]">) 
   const [events, siblings] = await Promise.all([
     getEvents(complaint.id),
     complaint.cluster_id
-      ? listComplaints({ limit: 400 })
+      ? listComplaints({ clusterId: complaint.cluster_id, limit: 50 })
       : Promise.resolve([]),
   ]);
 
-  const cluster = siblings.filter(
-    (c) => c.cluster_id === complaint.cluster_id && c.id !== complaint.id,
-  );
+  const cluster = siblings.filter((c) => c.id !== complaint.id);
 
   const dept = DEPARTMENTS[complaint.department_id];
-  const cat = CATEGORIES[complaint.category];
   const progress = slaProgress(complaint.created_at, complaint.due_at);
   const overdue = progress > 1 && complaint.status !== "resolved";
   const isUrdu = complaint.detected_language === "ur";

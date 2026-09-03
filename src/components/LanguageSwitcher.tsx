@@ -3,7 +3,8 @@
 import { Globe } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { LOCALES, LOCALE_COOKIE, getDictionary, type Locale } from "@/lib/i18n";
+import { setLocale } from "@/app/actions";
+import { LOCALES, getDictionary, type Locale } from "@/lib/i18n";
 import { useI18n } from "./LocaleProvider";
 import { cn } from "@/lib/utils";
 
@@ -32,10 +33,13 @@ export default function LanguageSwitcher({ dark = false }: { dark?: boolean }) {
   }, [open]);
 
   const choose = (next: Locale) => {
-    // One year, site-wide. No account needed to keep a language.
-    document.cookie = `${LOCALE_COOKIE}=${next}; path=/; max-age=31536000; samesite=lax`;
     setOpen(false);
-    startTransition(() => router.refresh());
+    // Written by a server action so the cookie is committed before the
+    // refresh that re-reads it. Writing document.cookie here raced it.
+    startTransition(async () => {
+      await setLocale(next);
+      router.refresh();
+    });
   };
 
   const current = getDictionary(locale);

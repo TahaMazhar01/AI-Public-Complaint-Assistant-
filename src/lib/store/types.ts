@@ -16,6 +16,9 @@ export interface ComplaintFilters {
   /** Cluster children are real complaints but noise in a queue — the
       console lists parents and shows the corroboration count instead. */
   parentsOnly?: boolean;
+  /** Members of one duplicate cluster. Without this the detail pages had
+      to pull hundreds of full rows and filter in memory. */
+  clusterId?: string;
   limit?: number;
 }
 

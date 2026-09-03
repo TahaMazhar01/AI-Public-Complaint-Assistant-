@@ -69,6 +69,9 @@ export async function listComplaints(
   if (f.parentsOnly) {
     rows = rows.filter((c) => c.is_cluster_parent);
   }
+  if (f.clusterId) {
+    rows = rows.filter((c) => c.cluster_id === f.clusterId);
+  }
   if (f.search?.trim()) {
     const q = f.search.trim().toLowerCase();
     rows = rows.filter(

@@ -205,6 +205,7 @@ export const en = {
     mergedExplain:
       "Reports matching an existing case by wording, category, and location within 300 m are merged rather than queued twice. The number beside a case is how many citizens are behind it.",
     dispatchQueue: "Dispatch queue",
+    heading: "Authority console",
     moveCase: "Move this case",
     acknowledge: "Acknowledge",
     dispatchTeam: "Dispatch team",
@@ -230,6 +231,20 @@ export const en = {
     corroborating: "{n} corroborating reports",
     loading: "Loading map…",
     console: "Console",
+  },
+
+  error: {
+    title: "Something went wrong at our end",
+    body: "The problem has been logged. Your complaints are safe; nothing you filed has been lost.",
+    retry: "Try again",
+    home: "Back to the start",
+  },
+
+  notFound: {
+    title: "We could not find that",
+    body: "Check the tracking number and try again. It looks like AWZ-LHR-2609-0043, and it is on the receipt you were given when the complaint was filed.",
+    search: "Search the register",
+    home: "Back to the start",
   },
 
   priority: {
