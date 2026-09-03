@@ -42,7 +42,7 @@ const notoSC = Noto_Sans_SC({
 export async function generateMetadata(): Promise<Metadata> {
   const t = getDictionary(await getLocale());
   return {
-    title: { default: `Awaaz — ${t.hero.eyebrow}`, template: "%s · Awaaz" },
+    title: { default: `Awaaz · ${t.hero.eyebrow}`, template: "%s · Awaaz" },
     description: t.hero.lead,
   };
 }
