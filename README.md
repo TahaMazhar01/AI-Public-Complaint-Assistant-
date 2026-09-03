@@ -79,11 +79,37 @@ than a real model, but it never fails and it never costs anything.
 
 ### Database
 
-Not yet wired. `src/lib/store.ts` is the only module that touches data; every
-page and route calls it and nothing else. When Supabase lands, implement the
-same functions against Postgres and no caller changes. `db/schema.sql` is ready
-to run as-is — sequence-generated tracking IDs, an append-only event log, and
-`match_duplicates()` mirroring the in-memory logic.
+Create a Supabase project, then run `db/schema.sql` in its SQL editor.
+If your project was created before 2026-09-03, also run `db/002-functions.sql`.
+
+```bash
+pnpm check:db   # is it reachable, and is the schema applied?
+pnpm seed       # load the demo corpus (111 complaints, 501 events)
+```
+
+`src/lib/store/` holds two interchangeable backends behind one interface:
+Postgres when Supabase is configured, an in-memory corpus when it is not.
+Callers import `@/lib/store` and cannot tell which is answering. The console
+footer states which one served the page.
+
+---
+
+## Languages
+
+English, اردو and 中文. **One language at a time** — no screen mixes two.
+The choice is a cookie read on the server, so pages stay server-rendered and
+every string switches at once, including inside server components.
+
+- Dictionaries live in `src/lib/i18n/` and are typed against `en.ts`, so a
+  missing key is a build error rather than a blank space during a demo.
+- Urdu is genuinely RTL: `dir=rtl`, Nastaliq, and its own line-heights —
+  Latin display metrics clip it badly.
+- Tracking numbers and coordinates stay LTR on RTL pages. A reference number
+  read right-to-left is a different reference number.
+- Department short names (WASA, LESCO, TEPA) are legal identifiers and are
+  never translated; what they are responsible for is.
+- The model is told which language to answer in, so a case filed in Urdu
+  comes back written in Urdu.
 
 ---
 
