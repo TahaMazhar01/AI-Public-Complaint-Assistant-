@@ -83,7 +83,13 @@ export default async function ConsoleCase({ params }: PageProps<"/console/[id]">
                 className={`type-h3 tabular-nums ${overdue ? "text-p1" : c.status === "resolved" ? "text-resolved" : ""}`}
               >
                 {c.status === "resolved"
-                  ? "—"
+                  ? c.resolved_at
+                    ? `${Math.round(
+                        (new Date(c.resolved_at).getTime() -
+                          new Date(c.created_at).getTime()) /
+                          3600_000,
+                      )}h`
+                    : ""
                   : slaCountdown(c.due_at).replace("OVERDUE ", "")}
               </span>
             </div>
