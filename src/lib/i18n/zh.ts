@@ -121,6 +121,7 @@ export const zh: Dictionary = {
   receipt: {
     filed: "投诉已提交",
     trackingNumber: "您的追踪编号",
+    scanToTrack: "扫码跟进此投诉",
     authority: "主管部门",
     priority: "优先级",
     dueIn: "响应期限",

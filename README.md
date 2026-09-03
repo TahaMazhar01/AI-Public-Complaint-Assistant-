@@ -73,8 +73,15 @@ Alibaba Model Studio speaks the OpenAI wire format, so it needs no special
 adapter. Switching providers changes one env var and nothing else.
 
 ```bash
-pnpm check:ai   # asks the configured provider one real question
+pnpm check:ai       # asks the provider one real question
+pnpm check:vision   # confirms it can read an image, using a generated one
 ```
+
+When a photograph is attached, a separate narrow call to `qwen-vl-plus`
+describes what is physically in frame. That description joins the citizen
+words and the single structured call reasons over both, so the tested
+output path is untouched. If the photograph contradicts the text, the model
+is told to prefer the citizen and say so.
 
 With `mock` — or no key, or a failed call — the pipeline uses the heuristic
 analyser in `src/lib/ai/analyze.ts`. It reads Roman Urdu cues, matches
@@ -87,8 +94,9 @@ Create a Supabase project, then run `db/schema.sql` in its SQL editor.
 If your project was created before 2026-09-03, also run `db/002-functions.sql`.
 
 ```bash
-pnpm check:db   # is it reachable, and is the schema applied?
-pnpm seed       # load the demo corpus (111 complaints, 501 events)
+pnpm check:db        # is it reachable, and is the schema applied?
+pnpm setup:storage   # create the photo bucket (once per project)
+pnpm seed            # load the demo corpus (111 complaints, 501 events)
 ```
 
 `src/lib/store/` holds two interchangeable backends behind one interface:

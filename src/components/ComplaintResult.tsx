@@ -8,6 +8,7 @@ import { DEPARTMENTS } from "@/lib/taxonomy";
 import type { Complaint } from "@/lib/types";
 import { slaCountdown } from "@/lib/utils";
 import { useI18n } from "./LocaleProvider";
+import TrackingQr from "./TrackingQr";
 import { HazardChips, PriorityBadge } from "./ui";
 
 /* ============================================================
@@ -60,22 +61,39 @@ export default function ComplaintResult({
         </span>
       </div>
 
-      {/* ── tracking number ── */}
-      <div className="rule-b px-4 py-6 sm:px-5">
-        <div className="type-eyebrow text-ink-faint mb-3">{t.receipt.trackingNumber}</div>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="font-mono text-[clamp(1.25rem,3.4vw,1.85rem)] leading-none tracking-tight tabular-nums">
-            {complaint.tracking_id}
-          </span>
-          <button
-            onClick={copy}
-            className="border-rule text-ink-muted hover:border-ink hover:text-ink inline-flex items-center gap-1.5 border px-2 py-1.5 transition-colors"
-          >
-            {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
-            <span className="type-eyebrow">{copied ? t.common.copied : t.common.copy}</span>
-          </button>
+      {/* ── tracking number, with the code that carries it ── */}
+      <div className="rule-b flex flex-wrap items-start justify-between gap-6 px-4 py-6 sm:px-5">
+        <div className="min-w-[16rem] flex-1">
+          <div className="type-eyebrow text-ink-faint mb-3">
+            {t.receipt.trackingNumber}
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <span
+              className="font-mono text-[clamp(1.25rem,3.4vw,1.85rem)] leading-none tracking-tight tabular-nums"
+              dir="ltr"
+            >
+              {complaint.tracking_id}
+            </span>
+            <button
+              onClick={copy}
+              className="border-rule text-ink-muted hover:border-ink hover:text-ink inline-flex items-center gap-1.5 border px-2 py-1.5 transition-colors"
+            >
+              {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
+              <span className="type-eyebrow">
+                {copied ? t.common.copied : t.common.copy}
+              </span>
+            </button>
+          </div>
+          <h2 className="type-h2 mt-5 text-balance">{complaint.title}</h2>
         </div>
-        <h2 className="type-h2 mt-5 text-balance">{complaint.title}</h2>
+
+        {/* The receipt is meant to be photographed off the screen. */}
+        <figure className="m-0 flex shrink-0 flex-col items-center gap-2">
+          <TrackingQr trackingId={complaint.tracking_id} />
+          <figcaption className="type-meta text-ink-faint max-w-[9rem] text-center">
+            {t.receipt.scanToTrack}
+          </figcaption>
+        </figure>
       </div>
 
       {/* ── the three facts that matter ── */}

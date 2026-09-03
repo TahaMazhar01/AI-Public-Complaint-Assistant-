@@ -28,6 +28,7 @@ Copy the values out of your local `.env.local`. Add every one to
 | `DASHSCOPE_API_KEY` | your `sk-…` key | secret |
 | `DASHSCOPE_BASE_URL` | `https://dashscope-intl.aliyuncs.com/compatible-mode/v1` | must match the key's region |
 | `DASHSCOPE_MODEL` | `qwen-plus` | |
+| `DASHSCOPE_VISION_MODEL` | `qwen-vl-plus` | reads attached photographs |
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://<project>.supabase.co` | **project origin, not the `/rest/v1/` endpoint** |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key | public by design |
 | `SUPABASE_SERVICE_ROLE_KEY` | service role key | **secret — never expose to the browser** |
@@ -82,8 +83,11 @@ URLs when a key is rejected.
 **Seed the database before presenting.** An empty console loses the room:
 
 ```bash
-pnpm check:db   # reachable? schema applied?
-pnpm seed       # 111 complaints, 501 events
+pnpm check:db        # reachable? schema applied?
+pnpm setup:storage   # create the photo bucket (once per project)
+pnpm seed            # 111 complaints, 501 events
+pnpm check:ai        # can we reach the model?
+pnpm check:vision    # can it read an image?
 ```
 
 Run these locally — they talk to the same Supabase project the deployment uses.

@@ -123,6 +123,7 @@ export const en = {
   receipt: {
     filed: "Complaint filed",
     trackingNumber: "Your tracking number",
+    scanToTrack: "Scan to follow this complaint",
     authority: "Authority",
     priority: "Priority",
     dueIn: "Response due in",

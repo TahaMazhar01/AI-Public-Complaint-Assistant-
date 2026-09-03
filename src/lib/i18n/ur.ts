@@ -122,6 +122,7 @@ export const ur: Dictionary = {
   receipt: {
     filed: "شکایت درج ہو گئی",
     trackingNumber: "آپ کا ٹریکنگ نمبر",
+    scanToTrack: "اس شکایت کو دیکھنے کے لیے اسکین کریں",
     authority: "ذمہ دار ادارہ",
     priority: "ترجیح",
     dueIn: "جواب کی مدت",
