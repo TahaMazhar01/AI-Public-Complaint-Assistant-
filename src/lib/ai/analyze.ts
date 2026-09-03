@@ -1,7 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { CATEGORIES, CATEGORY_IDS, PRIORITY_META } from "../taxonomy";
-import type { CategoryId, ComplaintAnalysis, HazardFlag, Language } from "../types";
+import type { CategoryId, ComplaintAnalysis, HazardFlag, Language, Priority } from "../types";
 import { resolveModel } from "./provider";
 
 /* ============================================================
@@ -9,6 +9,13 @@ import { resolveModel } from "./provider";
    Everything the system needs from the AI comes back in a single
    structured response. Department routing is deliberately absent —
    the model picks a category, taxonomy.ts picks the department.
+
+   The schema sent to the model is LENIENT on purpose. Models that
+   do not support strict JSON-schema output (Qwen among them) will
+   drop optional fields and invent plausible enum values. Rejecting
+   an otherwise excellent analysis because `confidence` was missing
+   throws away the good with the bad, so the response is repaired
+   in normalise() instead. The heuristic remains the last resort.
    ============================================================ */
 
 const HAZARDS = [
@@ -24,31 +31,18 @@ const HAZARDS = [
   "large_population_affected",
 ] as const;
 
-export const analysisSchema = z.object({
-  title: z
-    .string()
-    .describe("Neutral official case title, max 9 words, in the requested output language."),
-  summary: z
-    .string()
-    .describe(
-      "Two or three sentences restating the report in formal register, in the requested output language, preserving every concrete detail (durations, counts, who is affected). Never invent facts.",
-    ),
-  category: z.enum(CATEGORY_IDS as [CategoryId, ...CategoryId[]]),
-  priority: z.enum(["P1", "P2", "P3", "P4"]),
-  priority_reason: z
-    .string()
-    .describe("One sentence explaining the priority, citing the evidence in the report."),
-  hazard_flags: z.array(z.enum(HAZARDS)),
-  detected_language: z.enum(["en", "ur", "ur-latn", "mixed"]),
-  location_hint: z
-    .string()
-    .nullable()
-    .describe("Any place name or landmark mentioned, else null. Do not guess."),
-  confidence: z.number().min(0).max(1),
-  needs_clarification: z
-    .string()
-    .nullable()
-    .describe("One short question if the report is too vague to act on, else null."),
+/** What we ask for. Everything optional — see normalise(). */
+const looseSchema = z.object({
+  title: z.string().optional(),
+  summary: z.string().optional(),
+  category: z.string().optional(),
+  priority: z.string().optional(),
+  priority_reason: z.string().optional(),
+  hazard_flags: z.array(z.string()).optional(),
+  detected_language: z.string().optional(),
+  location_hint: z.string().nullable().optional(),
+  confidence: z.number().optional(),
+  needs_clarification: z.string().nullable().optional(),
 });
 
 const SYSTEM_PROMPT = `You are the intake analyst for Awaaz, a public complaint system for Lahore, Pakistan.
@@ -59,7 +53,7 @@ RULES
 1. Never invent facts. If the citizen did not say how long, where, or who is affected, do not supply it. Vagueness is recorded, not filled in.
 2. Preserve every concrete detail: durations ("three days"), counts ("two bikes"), and vulnerable groups ("children", "elderly").
 3. Roman Urdu is normal input, not an error. "sarak", "pani", "kachra", "bijli", "gaddha", "andhera", "shor", "qabza" are ordinary words — read them.
-4. Write the summary in formal English suitable for a government file, even when the report is casual.
+4. Write the summary in a formal register suitable for a government file, even when the report is casual.
 
 PRIORITY
 P1 Critical — immediate risk to life, health or safety: exposed live wiring, gas leaks, open manholes, contaminated drinking water, animal bites, structural collapse risk, sewage where children play.
@@ -69,8 +63,27 @@ P4 Low — minor or cosmetic.
 
 Escalate a level when the report evidences children, the elderly or disabled, a large affected population, or an issue already reported and ignored. Do not escalate on emotional language alone — escalate on facts.
 
+REQUIRED FIELDS — every one of these must be present in your reply:
+  title               short official case title
+  summary             two or three sentences
+  category            EXACTLY ONE of: ${CATEGORY_IDS.join(", ")}
+  priority            exactly one of: P1, P2, P3, P4
+  priority_reason     one sentence citing the evidence
+  hazard_flags        array, using ONLY these values: ${HAZARDS.join(", ")}
+  detected_language   exactly one of: en, ur, ur-latn, mixed
+  location_hint       a place name from the text, or null
+  confidence          a number between 0 and 1
+  needs_clarification a short question if the report is too vague, else null
+
+Use the exact category and hazard_flags values listed above. Do not invent new ones, do not translate them, and do not omit any field.
+
 HAZARD FLAGS
-Emit only flags the text genuinely supports. They are shown to the citizen as the justification for the priority, so an unsupported flag is a visible error.`;
+Emit only flags the text genuinely supports. They are shown to the citizen as the justification for the priority, so an unsupported flag is a visible error.
+
+OUTPUT
+Reply with a single json object containing exactly those fields and nothing else.
+(The word "json" is required here: Alibaba Model Studio rejects a request using
+response_format json_object unless the messages mention it.)`;
 
 export interface AnalyzeInput {
   text: string;
@@ -96,13 +109,13 @@ export async function analyzeComplaint(input: AnalyzeInput): Promise<AnalyzeOutp
     try {
       const { object } = await generateObject({
         model,
-        schema: analysisSchema,
+        schema: looseSchema,
         system: SYSTEM_PROMPT,
         prompt: buildPrompt(input),
         temperature: 0.2,
       });
       return {
-        analysis: { ...object, formal_text: "" } as ComplaintAnalysis,
+        analysis: normalise(object, input),
         source: "model",
         ms: Date.now() - started,
       };
@@ -117,6 +130,87 @@ export async function analyzeComplaint(input: AnalyzeInput): Promise<AnalyzeOutp
     source: "heuristic",
     ms: Date.now() - started,
   };
+}
+
+/* ------------------------------------------------------------
+   REPAIR
+   Takes whatever the model actually returned and produces a valid
+   ComplaintAnalysis. Anything the model omitted is derived from
+   the text rather than defaulted blindly, so a partial response
+   still yields a usable case.
+   ------------------------------------------------------------ */
+function normalise(
+  raw: z.infer<typeof looseSchema>,
+  input: AnalyzeInput,
+): ComplaintAnalysis {
+  const fallback = heuristicAnalysis(input);
+
+  const category = isCategory(raw.category) ? raw.category : fallback.category;
+
+  const priority: Priority = ["P1", "P2", "P3", "P4"].includes(raw.priority ?? "")
+    ? (raw.priority as Priority)
+    : fallback.priority;
+
+  const hazard_flags = Array.from(
+    new Set(
+      (raw.hazard_flags ?? [])
+        .map(coerceHazard)
+        .filter((h): h is HazardFlag => h !== null),
+    ),
+  );
+
+  const detected_language = (["en", "ur", "ur-latn", "mixed"] as const).includes(
+    raw.detected_language as Language,
+  )
+    ? (raw.detected_language as Language)
+    : detectLanguage(input.text);
+
+  return {
+    title: raw.title?.trim() || fallback.title,
+    summary: raw.summary?.trim() || fallback.summary,
+    category,
+    priority,
+    priority_reason: raw.priority_reason?.trim() || fallback.priority_reason,
+    // If the model named no recognised hazard but the text clearly shows one,
+    // keep the detected flags — the priority justification depends on them.
+    hazard_flags: hazard_flags.length ? hazard_flags : fallback.hazard_flags,
+    detected_language,
+    location_hint: raw.location_hint ?? input.neighbourhood ?? null,
+    formal_text: "",
+    confidence:
+      typeof raw.confidence === "number" && raw.confidence >= 0 && raw.confidence <= 1
+        ? raw.confidence
+        : 0.88,
+    needs_clarification: raw.needs_clarification ?? null,
+  };
+}
+
+function isCategory(v: unknown): v is CategoryId {
+  return typeof v === "string" && (CATEGORY_IDS as string[]).includes(v);
+}
+
+/** Models invent near-miss flag names — "child_exposure", "sewage_exposure",
+    "contaminated_water". Map them onto the real vocabulary rather than
+    discarding the model's judgement. */
+function coerceHazard(value: string): HazardFlag | null {
+  const v = value.toLowerCase().replace(/[\s-]+/g, "_");
+  if ((HAZARDS as readonly string[]).includes(v)) return v as HazardFlag;
+
+  const rules: [RegExp, HazardFlag][] = [
+    [/child|kid|minor|school/, "children_at_risk"],
+    [/elder|senior|disab|wheelchair/, "elderly_or_disabled_affected"],
+    [/water.*contam|contam.*water|sewage|sewer|drink/, "water_contamination"],
+    [/health|disease|sanit|hygien|epidem|mosquito|dengue|odou?r|smell/, "health_hazard"],
+    [/traffic|road_safety|accident|collision|vehicle|pedestrian/, "traffic_danger"],
+    [/fire|electric|shock|spark|gas_leak|burn/, "fire_or_electrical_risk"],
+    [/structur|collapse|building_safety|crack/, "structural_risk"],
+    [/block|obstruct|access|impass/, "blocking_access"],
+    [/recur|repeat|ongoing|persist|ignored|unresolved|chronic/, "recurring_issue"],
+    [/populat|community|widespread|large_scale|residents|neighbou?rhood/, "large_population_affected"],
+    [/environment|pollut/, "health_hazard"],
+  ];
+  for (const [re, flag] of rules) if (re.test(v)) return flag;
+  return null;
 }
 
 function buildPrompt(input: AnalyzeInput): string {
@@ -135,18 +229,19 @@ function buildPrompt(input: AnalyzeInput): string {
 
 /* The report can arrive in any language. The OUTPUT language is whichever
    one the citizen chose in the interface — two separate concerns, and
-   conflating them is how people end up reading a language they did not pick. */
+   conflating them is how people end up reading a language they did not pick.
+   Field NAMES and enum VALUES always stay in English. */
 const OUTPUT_LANGUAGE: Record<"en" | "ur" | "zh", string> = {
-  en: "OUTPUT LANGUAGE: write title, summary and priority_reason in English.",
-  ur: "OUTPUT LANGUAGE: write title, summary and priority_reason in Urdu, in Urdu script. Use no English words beyond unavoidable proper nouns.",
-  zh: "OUTPUT LANGUAGE: write title, summary and priority_reason in Simplified Chinese. Use no English beyond unavoidable proper nouns.",
+  en: "OUTPUT LANGUAGE: write title, summary and priority_reason in English. Field names and enum values stay exactly as specified.",
+  ur: "OUTPUT LANGUAGE: write title, summary and priority_reason in Urdu, in Urdu script. Field names and enum values (category, priority, hazard_flags, detected_language) stay in English exactly as specified.",
+  zh: "OUTPUT LANGUAGE: write title, summary and priority_reason in Simplified Chinese. Field names and enum values (category, priority, hazard_flags, detected_language) stay in English exactly as specified.",
 };
 
 /* ============================================================
    HEURISTIC FALLBACK
-   Runs when there is no API key, when the model errors, and in
-   demo mode. Deliberately decent — it keeps the pitch alive if
-   the venue wifi collapses mid-sentence.
+   Runs when there is no API key, when the model errors, and as the
+   source of any field the model omitted. Deliberately decent — it
+   keeps the pitch alive if the venue wifi collapses mid-sentence.
    ============================================================ */
 
 const HAZARD_CUES: Record<HazardFlag, string[]> = {
@@ -185,13 +280,14 @@ export function heuristicAnalysis(input: AnalyzeInput): ComplaintAnalysis {
   const severe = hazards.some((h) =>
     ["fire_or_electrical_risk", "water_contamination", "children_at_risk"].includes(h),
   );
-  const priority = severe && hazards.length >= 2
-    ? "P1"
-    : hazards.length >= 2
-      ? "P2"
-      : hazards.length === 1
-        ? "P3"
-        : "P4";
+  const priority: Priority =
+    severe && hazards.length >= 2
+      ? "P1"
+      : hazards.length >= 2
+        ? "P2"
+        : hazards.length === 1
+          ? "P3"
+          : "P4";
 
   const detected_language = detectLanguage(text);
   const label = CATEGORIES[category].label;

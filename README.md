@@ -72,6 +72,10 @@ DASHSCOPE_MODEL=qwen-plus
 Alibaba Model Studio speaks the OpenAI wire format, so it needs no special
 adapter. Switching providers changes one env var and nothing else.
 
+```bash
+pnpm check:ai   # asks the configured provider one real question
+```
+
 With `mock` — or no key, or a failed call — the pipeline uses the heuristic
 analyser in `src/lib/ai/analyze.ts`. It reads Roman Urdu cues, matches
 categories, detects hazards, and derives a priority. Noticeably worse titles

@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx scripts/seed-supabase.ts",
-    "check:db": "tsx scripts/check-supabase.ts"
+    "check:db": "tsx scripts/check-supabase.ts",
+    "check:ai": "tsx scripts/check-ai.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^4.0.46",
